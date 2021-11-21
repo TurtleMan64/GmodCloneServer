@@ -1,0 +1,144 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\toolbox">
+      <UniqueIdentifier>{73690129-c7d9-4c19-a598-1e545e84991e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\entities">
+      <UniqueIdentifier>{f5a4982b-30ca-451c-ac32-cfe39a370224}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\collision">
+      <UniqueIdentifier>{646ea0ec-23cb-460f-9bc0-9009dacd5247}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\loader">
+      <UniqueIdentifier>{a4160c97-dc0a-4d42-b506-ceb7ba53c512}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\textures">
+      <UniqueIdentifier>{daaa4b75-e22e-4532-82c9-54d7b09c40d0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\TcpClient.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\TcpListener.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PlayerConnection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Message.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolbox\Vector.cpp">
+      <Filter>Source Files\toolbox</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolbox\Maths.cpp">
+      <Filter>Source Files\toolbox</Filter>
+    </ClCompile>
+    <ClCompile Include="src\entities\Ball.cpp">
+      <Filter>Source Files\entities</Filter>
+    </ClCompile>
+    <ClCompile Include="src\entities\Entity.cpp">
+      <Filter>Source Files\entities</Filter>
+    </ClCompile>
+    <ClCompile Include="src\collision\CollisionChecker.cpp">
+      <Filter>Source Files\collision</Filter>
+    </ClCompile>
+    <ClCompile Include="src\collision\CollisionModel.cpp">
+      <Filter>Source Files\collision</Filter>
+    </ClCompile>
+    <ClCompile Include="src\collision\Triangle3D.cpp">
+      <Filter>Source Files\collision</Filter>
+    </ClCompile>
+    <ClCompile Include="src\loader\FakeTexture.cpp">
+      <Filter>Source Files\loader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\loader\ObjLoader.cpp">
+      <Filter>Source Files\loader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\loader\Vertex.cpp">
+      <Filter>Source Files\loader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\textures\ModelTexture.cpp">
+      <Filter>Source Files\textures</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolbox\Split.cpp">
+      <Filter>Source Files\toolbox</Filter>
+    </ClCompile>
+    <ClCompile Include="src\toolbox\Getline.cpp">
+      <Filter>Source Files\toolbox</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\tcpclient.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tcplistener.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\playerconnection.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\message.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolbox\vector.hpp">
+      <Filter>Source Files\toolbox</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolbox\maths.hpp">
+      <Filter>Source Files\toolbox</Filter>
+    </ClInclude>
+    <ClInclude Include="src\entities\ball.hpp">
+      <Filter>Source Files\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="src\entities\entity.hpp">
+      <Filter>Source Files\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="src\collision\collisionchecker.hpp">
+      <Filter>Source Files\collision</Filter>
+    </ClInclude>
+    <ClInclude Include="src\collision\collisionmodel.hpp">
+      <Filter>Source Files\collision</Filter>
+    </ClInclude>
+    <ClInclude Include="src\collision\triangle3d.hpp">
+      <Filter>Source Files\collision</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\loader\fakeTexture.hpp">
+      <Filter>Source Files\loader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\loader\objloader.hpp">
+      <Filter>Source Files\loader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\loader\vertex.hpp">
+      <Filter>Source Files\loader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\textures\modeltexture.hpp">
+      <Filter>Source Files\textures</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolbox\split.hpp">
+      <Filter>Source Files\toolbox</Filter>
+    </ClInclude>
+    <ClInclude Include="src\toolbox\getline.hpp">
+      <Filter>Source Files\toolbox</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

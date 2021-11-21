@@ -1,0 +1,72 @@
+# Material Count: 10
+
+newmtl None_cobblestone_material_0.png
+Ns 20.000000
+Ni 0.000000
+sound concrete
+d 1.000000
+map_Kd cobblestone_material_0.png
+
+newmtl None_Prodigy_material_43.png
+Ns 20.000000
+Ni 0.000000
+sound wood
+d 1.000000
+map_Kd Prodigy_material_43.png
+
+newmtl None_Prodigy_material_30.png
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+sound metal
+map_Kd Prodigy_material_30.png
+
+newmtl None
+Ns 20.000000
+Ni 0.000000
+sound concrete
+d 1.000000
+map_Kd cobblestone_material_11.png
+
+newmtl None_Chateau_material_7.png
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+sound grass
+map_Kd Chateau_material_7.png
+
+newmtl None_Chateau_material_79.png
+Ns 20.000000
+Ni 0.000000
+sound wood
+d 1.000000
+map_Kd Chateau_material_79.png
+
+newmtl None_cobblestone_material_25.png
+Ns 20.000000
+Ni 0.000000
+sound concrete
+d 1.000000
+map_Kd cobblestone_material_25.png
+
+newmtl None_Chateau_material_73.png
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+type bounce
+map_Kd Chateau_material_73.png
+
+newmtl None_Prodigy_material_26.png
+Ns 20.000000
+Ni 0.000000
+sound metal
+d 1.000000
+map_Kd Prodigy_material_26.png
+
+newmtl None_Vertigo_material_30.png
+Ns 20.000000
+Ni 0.000000
+sound wood
+d 1.000000
+map_Kd Vertigo_material_30.png
+

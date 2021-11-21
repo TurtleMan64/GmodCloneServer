@@ -1,0 +1,196 @@
+# Material Count: 32
+
+newmtl m5
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS12.png
+map_Kd TerrSS12.png
+
+newmtl OP_mo_base_02wall
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+map_Kd mo_base_02wall.png
+
+newmtl m9
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS04.png
+map_Kd TerrSS04.png
+
+newmtl m14
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS17.png
+map_Kd TerrSS17.png
+
+newmtl m20
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS03.png
+map_Kd TerrSS03.png
+
+newmtl m11
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS20.png
+map_Kd TerrSS20.png
+
+newmtl OP_mo_base_01wall
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+map_Kd mo_base_01wall.png
+
+newmtl m18
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS09.png
+map_Kd TerrSS09.png
+
+newmtl m15
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS00.png
+map_Kd TerrSS00.png
+
+newmtl m1
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS13.png
+map_Kd TerrSS13.png
+
+newmtl material_0
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+map_Kd water_material_0.png
+
+newmtl m3
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS16.png
+map_Kd TerrSS16.png
+
+newmtl m7
+Ns 94.000000
+Ni 0.000000
+type bounce
+map_d TerrSS08.png
+map_Kd TerrSS08.png
+
+newmtl material_4
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+map_Kd water_material_4.png
+
+newmtl m13
+Ns 94.000000
+Ni 0.000000
+map_d TerrMM21.png
+map_Kd TerrMM21.png
+
+newmtl m21
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS06.png
+map_Kd TerrSS06.png
+
+newmtl mo_base_02building
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+map_Kd mo_base_02building.png
+
+newmtl m6
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS14.png
+map_Kd TerrSS14.png
+
+newmtl m16
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS01.png
+map_Kd TerrSS01.png
+
+newmtl m2
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS15.png
+map_Kd TerrSS15.png
+
+newmtl m19
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS07.png
+map_Kd TerrSS07.png
+
+newmtl material_3
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+map_Kd water_material_3.png
+
+newmtl material_5
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+map_Kd water_material_5.png
+
+newmtl m10
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS18.png
+map_Kd TerrSS18.png
+
+newmtl m8
+Ns 94.000000
+Ni 0.000000
+type bounce
+map_d TerrSS05.png
+map_Kd TerrSS05.png
+
+newmtl m0
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS11.png
+map_Kd TerrSS11.png
+
+newmtl m17
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS02.png
+map_Kd TerrSS02.png
+
+newmtl material_2
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+map_Kd water_material_2.png
+
+newmtl m24
+Ns 94.000000
+Ni 0.000000
+map_d TerrSS10.png
+map_Kd TerrSS10.png
+
+newmtl pasted__FdAr01Zn01Athletic01
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+map_Kd FdAr01Zn01Athletic01.png
+
+newmtl material_6
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+map_Kd water_material_6.png
+
+newmtl OP_mo_base_01ground
+Ns 20.000000
+Ni 0.000000
+d 1.000000
+map_Kd mo_base_01ground.png
+
