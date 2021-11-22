@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <mutex>
+#include <condition_variable>
 #include <Windows.h>
 
 #include <GLFW/glfw3.h>
@@ -79,36 +80,6 @@ PlayerConnection::PlayerConnection(TcpClient* client)
     threadWrite = new std::thread(PlayerConnection::behaviorWrite, this);
 }
 
-void PlayerConnection::addMessage(Message msg)
-{
-    mutex.lock();
-
-    messagesToSend.push_back(msg);
-
-    mutex.unlock();
-}
-
-void PlayerConnection::flushMessages()
-{
-    mutex.lock();
-
-    for (Message msg : messagesToSend)
-    {
-        int bytesWritten = client->write(msg.buf, msg.length, TIMOUT);
-        if (bytesWritten != msg.length)
-        {
-            printf("Didn't write enough bytes.\n");
-            running = false;
-            mutex.unlock();
-            return;
-        }
-    }
-
-    messagesToSend.clear();
-
-    mutex.unlock();
-}
-
 void PlayerConnection::behaviorRead(PlayerConnection* pc)
 {
     while (pc->running)
@@ -129,7 +100,10 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     if (numRead != 8)
                     {
                         printf("Could not read clientSyncedTime\n");
+                        pc->mutexNewMessage.lock();
                         pc->running = false;
+                        pc->condNewMessage.notify_all();
+                        pc->mutexNewMessage.unlock();
                         return;
                     }
 
@@ -158,7 +132,10 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
 
                     if (!pc->client->isOpen())
                     {
+                        pc->mutexNewMessage.lock();
                         pc->running = false;
+                        pc->condNewMessage.notify_all();
+                        pc->mutexNewMessage.unlock();
                         break;
                     }
 
@@ -188,7 +165,10 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
 
                     if (!pc->client->isOpen())
                     {
+                        pc->mutexNewMessage.lock();
                         pc->running = false;
+                        pc->condNewMessage.notify_all();
+                        pc->mutexNewMessage.unlock();
                         break;
                     }
 
@@ -221,7 +201,10 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
 
                     if (!pc->client->isOpen())
                     {
+                        pc->mutexNewMessage.lock();
                         pc->running = false;
+                        pc->condNewMessage.notify_all();
+                        pc->mutexNewMessage.unlock();
                         break;
                     }
 
@@ -249,10 +232,15 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
         else
         {
             printf("Could not read command from player\n");
+            pc->mutexNewMessage.lock();
             pc->running = false;
+            pc->condNewMessage.notify_all();
+            pc->mutexNewMessage.unlock();
             return;
         }
     }
+
+    pc->condNewMessage.notify_all();
 }
 
 void PlayerConnection::behaviorWrite(PlayerConnection* pc)
@@ -263,7 +251,10 @@ void PlayerConnection::behaviorWrite(PlayerConnection* pc)
     if (numWrite != 1)
     {
         printf("Could not write out time command player\n");
+        pc->mutexNewMessage.lock();
         pc->running = false;
+        pc->condNewMessage.notify_all();
+        pc->mutexNewMessage.unlock();
         return;
     }
 
@@ -271,26 +262,78 @@ void PlayerConnection::behaviorWrite(PlayerConnection* pc)
     if (numWrite != 8)
     {
         printf("Could not write out time to player\n");
+        pc->mutexNewMessage.lock();
         pc->running = false;
+        pc->condNewMessage.notify_all();
+        pc->mutexNewMessage.unlock();
         return;
     }
 
     while (pc->running)
     {
+        std::unique_lock<std::mutex> lock{pc->mutexNewMessage};
+        pc->condNewMessage.wait(lock, [&]()
+        {
+            // Acquire the lock only if
+            // we've stopped or the queue
+            // isn't empty
+            return !pc->running || pc->messagesToSend.size() > 0;
+        });
+
+        if (!pc->running)
+        {
+            break;
+        }
+
+        // We own the mutex here; pop the queue
+        // until it empties out.
         if (pc->messagesToSend.size() > 0)
         {
             pc->flushMessages();
         }
-        else
+    }
+
+    pc->condNewMessage.notify_all();
+}
+
+void PlayerConnection::addMessage(Message msg)
+{
+    // Always lock before changing
+    // state guarded by a mutex and
+    // condition_variable (a.k.a. "condvar").
+    mutexNewMessage.lock();
+
+    messagesToSend.push_back(msg);
+
+    // Tell the consumer it has a new message
+    condNewMessage.notify_one();
+
+    mutexNewMessage.unlock();
+}
+
+void PlayerConnection::flushMessages()
+{
+    for (Message msg : messagesToSend)
+    {
+        int bytesWritten = client->write(msg.buf, msg.length, TIMOUT);
+        if (bytesWritten != msg.length)
         {
-            Sleep(1);
+            printf("Didn't write enough bytes.\n");
+            running = false;
+            condNewMessage.notify_all();
+            break;
         }
     }
+
+    messagesToSend.clear();
 }
 
 void PlayerConnection::close()
 {
+    mutexNewMessage.lock();
     running = false;
+    condNewMessage.notify_all();
+    mutexNewMessage.unlock();
 
     if (threadRead != nullptr)
     {
