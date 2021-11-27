@@ -11,6 +11,9 @@
 #include "message.hpp"
 #include "toolbox/vector.hpp"
 #include "main.hpp"
+#include "entities/entity.hpp"
+#include "entities/healthcube.hpp"
+#include "entities/ball.hpp"
 
 #define TIMOUT 50
 
@@ -76,8 +79,8 @@ PlayerConnection::PlayerConnection(TcpClient* client)
         disconnectMessage.buf[i + 5] = playerName[i];
     }
 
-    threadRead  = new std::thread(PlayerConnection::behaviorRead,  this);
-    threadWrite = new std::thread(PlayerConnection::behaviorWrite, this);
+    threadRead  = new std::thread(PlayerConnection::behaviorRead,  this); INCR_NEW("std::thread");
+    threadWrite = new std::thread(PlayerConnection::behaviorWrite, this); INCR_NEW("std::thread");
 }
 
 void PlayerConnection::behaviorRead(PlayerConnection* pc)
@@ -139,7 +142,82 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                         break;
                     }
 
+                    // Send this player's status to all other players
                     broadcastMessage(msg, pc);
+
+                    // Update the player position and health
+                    memcpy((char*)&pc->playerPos.x, &msg.buf[5 + nameLen + 18], 4);
+                    memcpy((char*)&pc->playerPos.y, &msg.buf[5 + nameLen + 22], 4);
+                    memcpy((char*)&pc->playerPos.z, &msg.buf[5 + nameLen + 26], 4);
+                    memcpy(&pc->playerHealth, &msg.buf[5 + nameLen + 143], 1);
+
+                    // Go through and see if the player has picked up any items
+
+                    const float COLLISION_RADIUS = 1.74f/4.0f;
+
+                    Global::gameEntitiesSharedMutex.lock_shared();
+                    for (Entity* e : Global::gameEntities)
+                    {
+                        switch (e->getEntityType())
+                        {
+                            case ENTITY_HEALTH_CUBE:
+                            {
+                                Vector3f playerPos = pc->playerPos;
+                                playerPos.y += COLLISION_RADIUS;
+                                Vector3f diff1 = playerPos - e->position;
+                                playerPos.y += 2*COLLISION_RADIUS;
+                                Vector3f diff2 = playerPos - e->position;
+
+                                HealthCube* healthCube = (HealthCube*)e;
+
+                                if (!healthCube->isCollected &&
+                                    pc->playerHealth < 100 &&
+                                    (diff1.lengthSquared() < (COLLISION_RADIUS + 0.3f)*(COLLISION_RADIUS + 0.3f)) ||
+                                    (diff2.lengthSquared() < (COLLISION_RADIUS + 0.3f)*(COLLISION_RADIUS + 0.3f)))
+                                {
+                                    bool pickedUp = false;
+
+                                    Global::gameEntitiesMutex.lock();
+                                    if (!healthCube->isCollected)
+                                    {
+                                        healthCube->isCollected = true;
+                                        pickedUp = true;
+                                    }
+                                    Global::gameEntitiesMutex.unlock();
+
+                                    if (pickedUp)
+                                    {
+                                        Message msgOut;
+                                        msgOut.length = 5 + nameLen + 1;
+                                        msgOut.buf[0] = 6;
+
+                                        int healthNameLen = (int)e->name.length();
+                                        memcpy(&msgOut.buf[1], &healthNameLen, 4);
+                                        memcpy(&msgOut.buf[5], e->name.c_str(), healthNameLen);
+
+                                        // Send 25 health to the player that picked it up
+                                        msgOut.buf[5 + healthNameLen] = 25;
+                                        pc->addMessage(msgOut);
+
+                                        // Send 0 health to everyone else (so that it will disappear in their game)
+                                        // Need to make this a new message instead of reusing msgOut.. not really sure why.
+                                        Message msgOut2;
+                                        msgOut2.length = 5 + nameLen + 1;
+                                        msgOut2.buf[0] = 6;
+                                        memcpy(&msgOut2.buf[1], &healthNameLen, 4);
+                                        memcpy(&msgOut2.buf[5], e->name.c_str(), healthNameLen);
+                                        msgOut2.buf[5 + healthNameLen] = 0;
+                                        broadcastMessage(msgOut2, pc);
+                                    }
+                                }
+                                break;
+                            }
+
+                            default:
+                                break;
+                        }
+                    }
+                    Global::gameEntitiesSharedMutex.unlock_shared();
 
                     break;
                 }
@@ -220,8 +298,44 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     break;
                 }
 
-                default:
+                case 8: // Updating status of glass plane
+                {
+                    int nameLen;
+                    char glassName[33] = {0};
+                    char isReal;
+                    char isBroken;
+
+                    pc->client->read((char*)&nameLen, 4, 5);
+                    pc->client->read(glassName, nameLen, 5);
+                    pc->client->read(&isReal,   1, 5);
+                    pc->client->read(&isBroken, 1, 5);
+
+                    Message msg;
+                    msg.length = 5 + nameLen + 2;
+                    msg.buf[0] = 8;
+                    memcpy(&msg.buf[1], &nameLen, 4);
+                    memcpy(&msg.buf[5], glassName, nameLen);
+                    memcpy(&msg.buf[5 + nameLen    ], &isReal, 1);
+                    memcpy(&msg.buf[5 + nameLen + 1], &isBroken, 1);
+
+                    if (!pc->client->isOpen())
+                    {
+                        pc->mutexNewMessage.lock();
+                        pc->running = false;
+                        pc->condNewMessage.notify_all();
+                        pc->mutexNewMessage.unlock();
+                        break;
+                    }
+
+                    broadcastMessage(msg, pc);
                     break;
+                }
+
+                default:
+                {
+                    printf("Error: Received unknown command %d from player %s\n", command, pc->playerName.c_str());
+                    break;
+                }
             }
         }
         else if (numRead == 0)
@@ -338,15 +452,15 @@ void PlayerConnection::close()
     if (threadRead != nullptr)
     {
         threadRead->join();
-        delete threadRead;
+        delete threadRead; INCR_DEL("std::thread");
     }
 
     if (threadWrite != nullptr)
     {
         threadWrite->join();
-        delete threadWrite;
+        delete threadWrite; INCR_DEL("std::thread");
     }
 
     client->close();
-    delete client;
+    delete client; INCR_DEL("TcpClient");
 }

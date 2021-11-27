@@ -5,7 +5,7 @@
 #include "../toolbox/vector.hpp"
 #include "collisionmodel.hpp"
 #include "../toolbox/maths.hpp"
-
+#include "../main.hpp"
 
 CollisionModel::CollisionModel()
 {
@@ -350,7 +350,7 @@ void CollisionModel::deleteMe()
     //Delete triangles 
     for (Triangle3D* tri : triangles)
     {
-        delete tri;
+        delete tri; INCR_DEL("Triangle3D*");
     }
 
     triangles.clear();
@@ -358,7 +358,7 @@ void CollisionModel::deleteMe()
 
 CollisionModel* CollisionModel::duplicateMe()
 {
-    CollisionModel* copy = new CollisionModel;
+    CollisionModel* copy = new CollisionModel; INCR_NEW("CollisionModel");
 
     copy->maxX            = this->maxX;
     copy->minX            = this->minX;
@@ -372,7 +372,7 @@ CollisionModel* CollisionModel::duplicateMe()
         Vector3f v1(tri->p1X, tri->p1Y, tri->p1Z);
         Vector3f v2(tri->p2X, tri->p2Y, tri->p2Z);
         Vector3f v3(tri->p3X, tri->p3Y, tri->p3Z);
-        Triangle3D* newTri = new Triangle3D(&v1, &v2, &v3, tri->type, tri->sound, tri->particle);
+        Triangle3D* newTri = new Triangle3D(&v1, &v2, &v3, tri->type, tri->sound, tri->particle); INCR_NEW("Triangle3D");
         newTri->generateValues();
         copy->triangles.push_back(newTri);
     }

@@ -172,7 +172,7 @@ void CollisionChecker::deleteAllTriangles()
 {
     for (int i = 0; i < CollisionChecker::triangles.size(); i++)
     {
-        delete CollisionChecker::triangles[i];
+        delete CollisionChecker::triangles[i]; INCR_DEL("Triangle3D");
         CollisionChecker::triangles[i] = nullptr;
     }
 
@@ -180,7 +180,7 @@ void CollisionChecker::deleteAllTriangles()
 
     for (int i = 0; i < mapOfTriangles.size(); i++)
     {
-        delete mapOfTriangles[i];
+        delete mapOfTriangles[i]; INCR_DEL("std::vector<Triangle3D*>");
     }
     mapOfTriangles.clear();
 }
@@ -194,7 +194,7 @@ void CollisionChecker::constructChunkDatastructure()
 {
     for (int i = 0; i < mapOfTriangles.size(); i++)
     {
-        delete mapOfTriangles[i];
+        delete mapOfTriangles[i]; INCR_DEL("std::vector<Triangle3D*>");
     }
     mapOfTriangles.clear();
 
@@ -246,7 +246,7 @@ void CollisionChecker::constructChunkDatastructure()
     {
         for (int y = 0; y < chunkedTrianglesHeight; y++)
         {
-            std::vector<Triangle3D*>* clump = new std::vector<Triangle3D*>();
+            std::vector<Triangle3D*>* clump = new std::vector<Triangle3D*>(); INCR_NEW("std::vector<Trinalge3D*>");
             mapOfTriangles.push_back(clump);
         }
     }

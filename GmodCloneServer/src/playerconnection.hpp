@@ -9,6 +9,7 @@
 
 #include "tcpclient.hpp"
 #include "message.hpp"
+#include "toolbox/vector.hpp"
 
 class PlayerConnection
 {
@@ -32,6 +33,8 @@ private:
 public:
     bool running = true;
     std::string playerName = "error";
+    Vector3f playerPos;
+    char playerHealth = 100;
     Message disconnectMessage;
 
     PlayerConnection(TcpClient* client);

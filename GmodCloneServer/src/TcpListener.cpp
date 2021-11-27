@@ -4,6 +4,7 @@
 
 #include "tcplistener.hpp"
 #include "tcpclient.hpp"
+#include "main.hpp"
 
 // Link with ws2_32.lib
 #pragma comment(lib, "Ws2_32.lib")
@@ -110,6 +111,7 @@ TcpClient* TcpListener::acceptTcpClient(int timeoutSec)
         return nullptr;
     }
 
+    INCR_NEW("TcpClient");
     return new TcpClient(socketClient);
 }
 

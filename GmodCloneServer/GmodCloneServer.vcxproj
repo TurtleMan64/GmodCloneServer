@@ -135,6 +135,8 @@
     <ClCompile Include="src\collision\Triangle3D.cpp" />
     <ClCompile Include="src\entities\Ball.cpp" />
     <ClCompile Include="src\entities\Entity.cpp" />
+    <ClCompile Include="src\entities\Glass.cpp" />
+    <ClCompile Include="src\entities\HealthCube.cpp" />
     <ClCompile Include="src\loader\FakeTexture.cpp" />
     <ClCompile Include="src\loader\ObjLoader.cpp" />
     <ClCompile Include="src\loader\Vertex.cpp" />
@@ -145,6 +147,7 @@
     <ClCompile Include="src\TcpListener.cpp" />
     <ClCompile Include="src\textures\ModelTexture.cpp" />
     <ClCompile Include="src\toolbox\Getline.cpp" />
+    <ClCompile Include="src\toolbox\LevelLoader.cpp" />
     <ClCompile Include="src\toolbox\Maths.cpp" />
     <ClCompile Include="src\toolbox\Split.cpp" />
     <ClCompile Include="src\toolbox\Vector.cpp" />
@@ -155,6 +158,8 @@
     <ClInclude Include="src\collision\triangle3d.hpp" />
     <ClInclude Include="src\entities\ball.hpp" />
     <ClInclude Include="src\entities\entity.hpp" />
+    <ClInclude Include="src\entities\glass.hpp" />
+    <ClInclude Include="src\entities\healthcube.hpp" />
     <ClInclude Include="src\loader\fakeTexture.hpp" />
     <ClInclude Include="src\loader\objloader.hpp" />
     <ClInclude Include="src\loader\vertex.hpp" />
@@ -165,6 +170,7 @@
     <ClInclude Include="src\tcplistener.hpp" />
     <ClInclude Include="src\textures\modeltexture.hpp" />
     <ClInclude Include="src\toolbox\getline.hpp" />
+    <ClInclude Include="src\toolbox\levelloader.hpp" />
     <ClInclude Include="src\toolbox\maths.hpp" />
     <ClInclude Include="src\toolbox\split.hpp" />
     <ClInclude Include="src\toolbox\vector.hpp" />
