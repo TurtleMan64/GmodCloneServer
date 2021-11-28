@@ -137,6 +137,7 @@
     <ClCompile Include="src\entities\Entity.cpp" />
     <ClCompile Include="src\entities\Glass.cpp" />
     <ClCompile Include="src\entities\HealthCube.cpp" />
+    <ClCompile Include="src\entities\RockPlatform.cpp" />
     <ClCompile Include="src\loader\FakeTexture.cpp" />
     <ClCompile Include="src\loader\ObjLoader.cpp" />
     <ClCompile Include="src\loader\Vertex.cpp" />
@@ -160,6 +161,7 @@
     <ClInclude Include="src\entities\entity.hpp" />
     <ClInclude Include="src\entities\glass.hpp" />
     <ClInclude Include="src\entities\healthcube.hpp" />
+    <ClInclude Include="src\entities\rockplatform.hpp" />
     <ClInclude Include="src\loader\fakeTexture.hpp" />
     <ClInclude Include="src\loader\objloader.hpp" />
     <ClInclude Include="src\loader\vertex.hpp" />

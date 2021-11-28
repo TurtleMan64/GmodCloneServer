@@ -5,6 +5,8 @@
 #include <mutex>
 #include <shared_mutex>
 #include <Windows.h>
+#include <string>
+#include <iostream>
 
 #include <GLFW/glfw3.h>
 
@@ -24,6 +26,7 @@
 #include "entities/glass.hpp"
 #include "toolbox/levelloader.hpp"
 #include "toolbox/maths.hpp"
+#include "entities/rockplatform.hpp"
 
 std::string Global::pathToEXE;
 
@@ -41,8 +44,8 @@ Vector3f Global::safeZoneEnd;
 
 float dt;
 
-std::shared_mutex playerConnectionsSharedMutex;
-std::unordered_set<PlayerConnection*> playerConnections;
+std::shared_mutex Global::playerConnectionsSharedMutex;
+std::unordered_set<PlayerConnection*> Global::playerConnections;
 
 std::thread* masterThread = nullptr;
 
@@ -54,6 +57,8 @@ void intHandler()
 }
 
 void masterServerLogic();
+
+void consoleInputLogic();
 
 int main(int argc, char** argv)
 {
@@ -74,14 +79,14 @@ int main(int argc, char** argv)
 
     glfwInit();
 
-    CollisionModel* cm = ObjLoader::loadCollisionModel("Models/TestMap/", "TestMap");
-    for (int i = 0; i < cm->triangles.size(); i++)
-    {
-        CollisionChecker::addTriangle(cm->triangles[i]);
-    }
-    CollisionChecker::constructChunkDatastructure();
+    //CollisionModel* cm = ObjLoader::loadCollisionModel("Models/TestMap/", "TestMap");
+    //for (int i = 0; i < cm->triangles.size(); i++)
+    //{
+    //    CollisionChecker::addTriangle(cm->triangles[i]);
+    //}
+    //CollisionChecker::constructChunkDatastructure();
 
-    LevelLoader::loadLevel("Map1");
+    LevelLoader::loadLevel("test");
 
     glfwSetTime(0.0);
 
@@ -92,6 +97,8 @@ int main(int argc, char** argv)
 
     masterThread = new std::thread(masterServerLogic); INCR_NEW("std::thread");
 
+    std::thread* consoleInputThread = new std::thread(consoleInputLogic); INCR_NEW("std::thread");
+
     while (isRunning)
     {
         TcpClient* client = listener->acceptTcpClient(-1);
@@ -100,9 +107,9 @@ int main(int argc, char** argv)
             printf("Found new player: ");
             PlayerConnection* pc = new PlayerConnection(client); INCR_NEW("PlayerConnection");
 
-            playerConnectionsSharedMutex.lock();
-            playerConnections.insert(pc);
-            playerConnectionsSharedMutex.unlock();
+            Global::playerConnectionsSharedMutex.lock();
+            Global::playerConnections.insert(pc);
+            Global::playerConnectionsSharedMutex.unlock();
         }
         else if (!listener->isOpen())
         {
@@ -117,21 +124,24 @@ int main(int argc, char** argv)
     listener->close();
     delete listener; INCR_DEL("TcpListener");
 
-    playerConnectionsSharedMutex.lock();
-    for (PlayerConnection* pc : playerConnections)
+    consoleInputThread->join();
+    delete consoleInputThread; INCR_DEL("std::thread");
+
+    Global::playerConnectionsSharedMutex.lock();
+    for (PlayerConnection* pc : Global::playerConnections)
     {
         pc->close();
         delete pc; INCR_DEL("PlayerConnection");
     }
-    playerConnections.clear();
-    playerConnectionsSharedMutex.unlock();
+    Global::playerConnections.clear();
+    Global::playerConnectionsSharedMutex.unlock();
 }
 
 void broadcastMessage(Message msg, PlayerConnection* sender)
 {
-    playerConnectionsSharedMutex.lock_shared();
+    Global::playerConnectionsSharedMutex.lock_shared();
 
-    for (PlayerConnection* pc : playerConnections)
+    for (PlayerConnection* pc : Global::playerConnections)
     {
         if (pc != sender)
         {
@@ -139,24 +149,24 @@ void broadcastMessage(Message msg, PlayerConnection* sender)
         }
     }
 
-    playerConnectionsSharedMutex.unlock_shared();
+    Global::playerConnectionsSharedMutex.unlock_shared();
 }
 
 void sendMessageToSpecificPlayer(Message msg, std::string playerName)
 {
-    playerConnectionsSharedMutex.lock_shared();
+    Global::playerConnectionsSharedMutex.lock_shared();
 
-    for (PlayerConnection* pc : playerConnections)
+    for (PlayerConnection* pc : Global::playerConnections)
     {
         if (pc->playerName == playerName)
         {
             pc->addMessage(msg);
-            playerConnectionsSharedMutex.unlock_shared();
+            Global::playerConnectionsSharedMutex.unlock_shared();
             return;
         }
     }
 
-    playerConnectionsSharedMutex.unlock_shared();
+    Global::playerConnectionsSharedMutex.unlock_shared();
     printf("Tried to send a message to '%s', but that player doesn't exist\n", playerName.c_str());
 }
 
@@ -218,10 +228,76 @@ void masterServerLogic()
                         broadcastMessage(msg, nullptr);
                         break;
                     }
+
+                    case ENTITY_ROCK_PLATFORM:
+                    {
+                        RockPlatform* rock = (RockPlatform*)e;
+
+                        int nameLen = (int)rock->name.size();
+            
+                        Message msg;
+                        msg.length = 5 + nameLen + 4;
+            
+                        msg.buf[0] = 11;
+                        memcpy(&msg.buf[1], &nameLen, 4);
+                        memcpy(&msg.buf[5], rock->name.c_str(), nameLen);
+                        memcpy(&msg.buf[5 + nameLen], &rock->timeUntilBreaks, 4);
+            
+                        broadcastMessage(msg, nullptr);
+                        break;
+                    }
             
                     default: break;
                 }
             }
+
+            if (Global::levelId == LVL_MAP4)
+            {
+                // Put the players on a random rock
+                std::vector<RockPlatform*> rocksForPlayers;
+                for (Entity* e : Global::gameEntities)
+                {
+                    switch (e->getEntityType())
+                    {
+                        case ENTITY_ROCK_PLATFORM:
+                        {
+                            rocksForPlayers.push_back((RockPlatform*)e);
+                            break;
+                        }
+
+                        default: break;
+                    }
+                }
+
+                Global::playerConnectionsSharedMutex.lock_shared();
+                for (PlayerConnection* pc : Global::playerConnections)
+                {
+                    if (pc->playerHealth <= 0)
+                    {
+                        continue;
+                    }
+
+                    int idx = (int)(rocksForPlayers.size()*Maths::random());
+                    Vector3f pos = rocksForPlayers[idx]->position;
+                    rocksForPlayers.erase(rocksForPlayers.begin() + idx);
+
+                    float vel = 0.0f;
+
+                    Message msg;
+                    msg.length = 1 + 12 + 12;
+                    msg.buf[0] = 12;
+                    memcpy(&msg.buf[ 1], &pos.x, 4);
+                    memcpy(&msg.buf[ 5], &pos.y, 4);
+                    memcpy(&msg.buf[ 9], &pos.z, 4);
+                    memcpy(&msg.buf[13], &vel,   4);
+                    memcpy(&msg.buf[17], &vel,   4);
+                    memcpy(&msg.buf[21], &vel,   4);
+
+                    pc->addMessage(msg);
+                }
+                Global::playerConnectionsSharedMutex.unlock_shared();
+            }
+
             Global::gameEntitiesSharedMutex.unlock_shared();
         }
 
@@ -233,10 +309,19 @@ void masterServerLogic()
 
         if (timeUntilRoundEndsBefore > -5.0f && Global::timeUntilRoundEnds <= -5.0f)
         {
-            std::string lvlToLoad = "Map1";
-            if (Maths::random() > 0.5f)
+            std::string lvlToLoad;
+            float ran = Maths::random();
+            if (ran <= 0.333f)
             {
-                lvlToLoad = "Map2";
+                lvlToLoad = "map1";
+            }
+            else if (ran <= 0.666f)
+            {
+                lvlToLoad = "map2";
+            }
+            else if (ran <= 1.0f)
+            {
+                lvlToLoad = "map4";
             }
 
             int lvlNameLen = (int)lvlToLoad.size();
@@ -280,8 +365,8 @@ void masterServerLogic()
                 int totalAlivePlayers = 0;
                 int totalAlivePlayersInSafeZone = 0;
 
-                playerConnectionsSharedMutex.lock_shared();
-                for (PlayerConnection* pc : playerConnections)
+                Global::playerConnectionsSharedMutex.lock_shared();
+                for (PlayerConnection* pc : Global::playerConnections)
                 {
                     if (pc->playerHealth > 0)
                     {
@@ -303,7 +388,7 @@ void masterServerLogic()
                         totalAlivePlayersInSafeZone++;
                     }
                 }
-                playerConnectionsSharedMutex.unlock_shared();
+                Global::playerConnectionsSharedMutex.unlock_shared();
 
                 bool endingTheRound = false;
 
@@ -344,14 +429,14 @@ void masterServerLogic()
         {
             std::vector<PlayerConnection*> pcsToDelete;
 
-            playerConnectionsSharedMutex.lock_shared();
-            for (PlayerConnection* pc1 : playerConnections)
+            Global::playerConnectionsSharedMutex.lock_shared();
+            for (PlayerConnection* pc1 : Global::playerConnections)
             {
                 if (!pc1->running)
                 {
                     pcsToDelete.push_back(pc1);
 
-                    for (PlayerConnection* pc2 : playerConnections)
+                    for (PlayerConnection* pc2 : Global::playerConnections)
                     {
                         if (pc2 != pc1 && pc1->disconnectMessage.length > 1)
                         {
@@ -360,17 +445,17 @@ void masterServerLogic()
                     }
                 }
             }
-            playerConnectionsSharedMutex.unlock_shared();
+            Global::playerConnectionsSharedMutex.unlock_shared();
 
-            playerConnectionsSharedMutex.lock();
+            Global::playerConnectionsSharedMutex.lock();
             for (PlayerConnection* pcToDelete : pcsToDelete)
             {
-                playerConnections.erase(pcToDelete);
+                Global::playerConnections.erase(pcToDelete);
                 printf("%s Disconnected\n", pcToDelete->playerName.c_str());
                 pcToDelete->close();
                 delete pcToDelete; INCR_DEL("PlayerConnection");
             }
-            playerConnectionsSharedMutex.unlock();
+            Global::playerConnectionsSharedMutex.unlock();
 
             prevCheckDeadConnections = glfwGetTime();
 
@@ -381,6 +466,57 @@ void masterServerLogic()
             //    printf("%s: %d\n", it->first.c_str(), it->second);
             //}
             //printf("\n");
+        }
+    }
+}
+
+void consoleInputLogic()
+{
+    while (isRunning)
+    {
+        std::string str;
+        std::getline(std::cin, str);
+
+        std::string lvlName = "";
+
+        if (str == "load-map map1")
+        {
+            lvlName = "map1";
+        }
+        else if (str == "load-map map2")
+        {
+            lvlName = "map2";
+        }
+        else if (str == "load-map map3")
+        {
+            lvlName = "map3";
+        }
+        else if (str == "load-map eq")
+        {
+            lvlName = "eq";
+        }
+        else if (str == "load-map map4")
+        {
+            lvlName = "map4";
+        }
+        else if (str == "load-map test")
+        {
+            lvlName = "test";
+        }
+
+        if (lvlName != "")
+        {
+            int lvlNameLen = (int)lvlName.size();
+
+            Message msg;
+            msg.length = 5 + lvlNameLen;
+            msg.buf[0] = 9;
+            memcpy(&msg.buf[1], &lvlNameLen, 4);
+            memcpy(&msg.buf[5], lvlName.c_str(), lvlNameLen);
+            
+            broadcastMessage(msg, nullptr);
+            
+            LevelLoader::loadLevel(lvlName);
         }
     }
 }

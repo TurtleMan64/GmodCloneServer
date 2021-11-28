@@ -93,6 +93,9 @@
     <ClCompile Include="src\toolbox\LevelLoader.cpp">
       <Filter>Source Files\toolbox</Filter>
     </ClCompile>
+    <ClCompile Include="src\entities\RockPlatform.cpp">
+      <Filter>Source Files\entities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\tcpclient.hpp">
@@ -157,6 +160,9 @@
     </ClInclude>
     <ClInclude Include="src\toolbox\levelloader.hpp">
       <Filter>Source Files\toolbox</Filter>
+    </ClInclude>
+    <ClInclude Include="src\entities\rockplatform.hpp">
+      <Filter>Source Files\entities</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

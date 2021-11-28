@@ -19,6 +19,7 @@ class Triangle3D;
 #define ENTITY_HEALTH_CUBE 7
 #define ENTITY_GLASS 8
 #define ENTITY_BOOM_BOX 9
+#define ENTITY_ROCK_PLATFORM 10
 
 class Entity
 {

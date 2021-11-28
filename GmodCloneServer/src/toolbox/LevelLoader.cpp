@@ -3,6 +3,7 @@
 #include <cstring>
 #include <fstream>
 #include <list>
+#include <windows.h>
 
 #include <chrono>
 #include <thread>
@@ -20,12 +21,31 @@
 #include "../entities/glass.hpp"
 #include "../entities/healthcube.hpp"
 #include "../loader/objloader.hpp"
+#include "../entities/rockplatform.hpp"
+#include "../message.hpp"
+#include "../playerconnection.hpp"
 
 void LevelLoader::loadLevel(std::string mapName)
 {
-    std::string fname = mapName + ".map";
+    //convert name to lowercase name
+    char nameLower[32] = {0};
+    if ((int)mapName.size() < 32)
+    {
+        for (int i = 0; i < (int)mapName.size(); i++)
+        {
+            char c = mapName[i];
 
-    printf("loading a level...\n");
+            if (c >= 65 && c <= 90)
+            {
+                c += 32;
+            }
+
+            nameLower[i] = c;
+        }
+    }
+
+    std::string lower = nameLower;
+    std::string fname = lower + ".map";
 
     std::ifstream file(Global::pathToEXE + "res/Maps/" + fname);
     if (!file.is_open())
@@ -48,10 +68,13 @@ void LevelLoader::loadLevel(std::string mapName)
     std::chrono::high_resolution_clock::time_point timeStart = std::chrono::high_resolution_clock::now();
     bool waitForSomeTime = true;
 
-    if      (fname == "Hub.map")  Global::levelId = LVL_HUB;
-    else if (fname == "Map1.map") Global::levelId = LVL_MAP1;
-    else if (fname == "Map2.map") Global::levelId = LVL_MAP2;
-    else if (fname == "Map3.map") Global::levelId = LVL_MAP3;
+    if      (fname == "hub.map")  Global::levelId = LVL_HUB;
+    else if (fname == "map1.map") Global::levelId = LVL_MAP1;
+    else if (fname == "map2.map") Global::levelId = LVL_MAP2;
+    else if (fname == "map3.map") Global::levelId = LVL_MAP3;
+    else if (fname == "eq.map")   Global::levelId = LVL_EQ;
+    else if (fname == "map4.map") Global::levelId = LVL_MAP4;
+    else if (fname == "test.map") Global::levelId = LVL_TEST;
 
     //Run through the header content
 
@@ -110,7 +133,7 @@ void LevelLoader::loadLevel(std::string mapName)
     std::vector<std::string> roundTime = split(roundTimeLine, ' ');
     Global::timeUntilRoundEnds = toF(roundTime[0]);
 
-    printf("setting timeUntilRoundEnds to %f in levelloader\n", Global::timeUntilRoundEnds);
+    //printf("setting timeUntilRoundEnds to %f in levelloader\n", Global::timeUntilRoundEnds);
 
     //Now read through all the objects defined in the file
 
@@ -131,6 +154,36 @@ void LevelLoader::loadLevel(std::string mapName)
     Global::gameEntitiesSharedMutex.unlock();
 
     file.close();
+
+    // Spawn rock platforms
+    if (Global::levelId == LVL_MAP4)
+    {
+        std::vector<RockPlatform*> rocksForTimers;
+        for (int x = 0; x < 6; x++)
+        {
+            for (int z = 0; z < 6; z++)
+            {
+                int idx = z + 10*x;
+
+                std::string id = std::to_string(idx);
+                id = "RP" + id;
+
+                RockPlatform* rock = new RockPlatform(id, Vector3f((x-3)*8.0f, 0, (z-3)*8.0f)); INCR_NEW("Entity");
+                rocksForTimers.push_back(rock);
+                Global::gameEntities.insert(rock);
+            }
+        }
+
+        // Set timer for rocks that will break
+        int rocksToDie = (int)rocksForTimers.size() - 5;
+
+        for (int i = 0; i < rocksToDie; i++)
+        {
+            int idx = (int)(rocksForTimers.size()*Maths::random());
+            rocksForTimers[idx]->timeUntilBreaks = 3.0f + 40*Maths::random();
+            rocksForTimers.erase(rocksForTimers.begin() + idx);
+        }
+    }
 
     if (waitForSomeTime)
     {
@@ -236,6 +289,13 @@ void LevelLoader::processLine(std::vector<std::string>& dat)
         //    Global::gameEntities.insert(box);
         //    break;
         //}
+
+        case ENTITY_ROCK_PLATFORM:
+        {
+            RockPlatform* rock = new RockPlatform(dat[1], Vector3f(toF(dat[2]), toF(dat[3]), toF(dat[4]))); INCR_NEW("Entity");
+            Global::gameEntities.insert(rock);
+            break;
+        }
 
         default:
         {

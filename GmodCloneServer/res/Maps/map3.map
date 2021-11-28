@@ -1,0 +1,20 @@
+res/Models/Bedroom/ Bedroom   # Visual Stage Model
+res/Models/Bedroom/ Collision # Collision Stage Model
+-23 8 11.5     -3 8 24        # Player Spawning Zone Endpoints
+0 0 0 0 0 0                   # Player Safe Zone Endpoints
+1.0 1.0 1.0                   # Sky Color
+-0.2 -1 -0.4                  # Sun Direction
+0 0 -1                        # Camera Direction
+60000000000                   # Round Time Duration (seconds)
+
+# Boom Box
+9 BB1 -23.898361 34.299999 -25.127977 -45
+
+# Collision Blocks
+4 CB1  -6.01094 17.5895 -19.5853  0 0.8 2.0 9.0 1 0
+4 CB2 -17 25 -19.5853             1 0.8 2.0 8.0 1 0
+4 CB3 -22.5 32.3 -23.8            0 2.0 1.0 0.0 0 0
+
+# Ladders
+6 L1 14.3879 0.0 -16.1003    0.01 10.57 0.5
+

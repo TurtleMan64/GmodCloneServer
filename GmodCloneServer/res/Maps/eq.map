@@ -1,0 +1,11 @@
+res/Models/EggQuarters/ EggQuarters # Visual Stage Model
+res/Models/EggQuarters/ Collision   # Collision Stage Model
+71 -2 71 71 -2 71                   # Player Spawning Zone Endpoints
+0 0 0 0 0 0                         # Player Safe Zone Endpoints
+1.0 1.0 1.0                         # Sky Color
+-0.2 -1 -0.4                        # Sun Direction
+-1 0 -1                             # Camera Direction
+60000000000                         # Round Time Duration (seconds)
+
+# Boom Box
+9 BB1 -23.898361 34.299999 -25.127977 -45

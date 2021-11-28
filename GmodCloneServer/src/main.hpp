@@ -16,11 +16,15 @@
 #endif
 
 class Entity;
+class PlayerConnection;
 
 #define LVL_HUB  0
 #define LVL_MAP1 1
 #define LVL_MAP2 2
 #define LVL_MAP3 3
+#define LVL_EQ   4
+#define LVL_MAP4 5
+#define LVL_TEST 6
 
 class Global
 {
@@ -35,6 +39,9 @@ public:
     static std::shared_mutex gameEntitiesMutex;
 
     static std::unordered_set<Entity*> gameEntities;
+
+    static std::shared_mutex playerConnectionsSharedMutex;
+    static std::unordered_set<PlayerConnection*> playerConnections;
 
     static int levelId;
 

@@ -5,7 +5,7 @@ class Message
 {
 public:
     int length = 0;
-    char buf[188];
+    char buf[200];
 };
 
 #endif

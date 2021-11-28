@@ -115,7 +115,8 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     {
                         ping = 0;
                     }
-                    printf("%s Ping = %dms\n", pc->playerName.c_str(), ping);
+                    pc->pingMs = ping;
+                    //printf("%s Ping = %dms\n", pc->playerName.c_str(), ping);
 
                     break;
                 }
@@ -125,13 +126,15 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     int nameLen = (int)pc->playerName.size();
 
                     Message msg;
-                    msg.length = 5 + nameLen + 144;
+                    msg.length = 5 + nameLen + 144 + 4;
 
                     // Copy the name over
                     memcpy(msg.buf, pc->sendMsgBuf, 5 + nameLen);
 
                     // Copy the rest of the data from the wire
                     pc->client->read(&msg.buf[5 + nameLen], 144, 5);
+
+                    memcpy(&msg.buf[5 + nameLen + 144], &pc->pingMs, 4);
 
                     if (!pc->client->isOpen())
                     {
