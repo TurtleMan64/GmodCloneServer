@@ -14,8 +14,9 @@
 #include "entities/entity.hpp"
 #include "entities/healthcube.hpp"
 #include "entities/ball.hpp"
+#include "toolbox/maths.hpp"
 
-#define TIMOUT 50
+#define TIMOUT 10
 
 extern void broadcastMessage(Message msg, PlayerConnection* sender);
 
@@ -117,6 +118,14 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     }
                     pc->pingMs = ping;
                     //printf("%s Ping = %dms\n", pc->playerName.c_str(), ping);
+
+                    //ping = (int)(1000*Maths::random());
+
+                    Message msg;
+                    msg.length = 5;
+                    msg.buf[0] = 13;
+                    memcpy(&msg.buf[1], &ping, 4);
+                    pc->addMessage(msg);
 
                     break;
                 }
