@@ -90,7 +90,7 @@ int main(int argc, char** argv)
 
     glfwSetTime(0.0);
 
-    Global::serverStartTime = Global::getRawUtcSystemTime();
+    //Global::serverStartTime = Global::getRawUtcSystemTime();
 
     TcpListener* listener = new TcpListener(25567); INCR_NEW("TcpListener");
     listener->startListeneing();
@@ -311,17 +311,21 @@ void masterServerLogic()
         {
             std::string lvlToLoad;
             float ran = Maths::random();
-            if (ran <= 0.333f)
+            if (ran <= 0.25f)
             {
                 lvlToLoad = "map1";
             }
-            else if (ran <= 0.666f)
+            else if (ran <= 0.5f)
             {
                 lvlToLoad = "map2";
             }
-            else if (ran <= 1.0f)
+            else if (ran <= 0.75f)
             {
                 lvlToLoad = "map4";
+            }
+            else if (ran <= 1.0f)
+            {
+                lvlToLoad = "map5";
             }
 
             int lvlNameLen = (int)lvlToLoad.size();
@@ -357,7 +361,7 @@ void masterServerLogic()
             Sleep(1);
         }
 
-         //Every 1 seconds, check if all playes have entered the safe zone
+         //Every 1 second, check if all playes have entered the safe zone
         if (currTime - prevCheckSafeZone >= 1.0)
         {
             if (Global::timeUntilRoundStarts < 0.0f && Global::timeUntilRoundEnds > 5.0f)
@@ -425,7 +429,7 @@ void masterServerLogic()
             prevCheckSafeZone = glfwGetTime();
         }
 
-        if (currTime - prevCheckDeadConnections >= 5.0) //Every 5 seconds, check for dead connections
+        if (currTime - prevCheckDeadConnections >= 1.0) //Every 1 second, check for dead connections
         {
             std::vector<PlayerConnection*> pcsToDelete;
 
@@ -447,15 +451,18 @@ void masterServerLogic()
             }
             Global::playerConnectionsSharedMutex.unlock_shared();
 
-            Global::playerConnectionsSharedMutex.lock();
-            for (PlayerConnection* pcToDelete : pcsToDelete)
+            if (pcsToDelete.size() > 0)
             {
-                Global::playerConnections.erase(pcToDelete);
-                printf("%s Disconnected\n", pcToDelete->playerName.c_str());
-                pcToDelete->close();
-                delete pcToDelete; INCR_DEL("PlayerConnection");
+                Global::playerConnectionsSharedMutex.lock();
+                for (PlayerConnection* pcToDelete : pcsToDelete)
+                {
+                    Global::playerConnections.erase(pcToDelete);
+                    printf("%s Disconnected\n", pcToDelete->playerName.c_str());
+                    pcToDelete->close();
+                    delete pcToDelete; INCR_DEL("PlayerConnection");
+                }
+                Global::playerConnectionsSharedMutex.unlock();
             }
-            Global::playerConnectionsSharedMutex.unlock();
 
             prevCheckDeadConnections = glfwGetTime();
 
@@ -503,6 +510,10 @@ void consoleInputLogic()
         {
             lvlName = "test";
         }
+        else if (str == "load-map map5")
+        {
+            lvlName = "map5";
+        }
 
         if (lvlName != "")
         {
@@ -521,21 +532,21 @@ void consoleInputLogic()
     }
 }
 
-unsigned long long Global::serverStartTime; //when the server started up
-unsigned long long Global::getRawUtcSystemTime()
-{
-    FILETIME ft;
-    GetSystemTimeAsFileTime(&ft);
-
-    unsigned long high = (unsigned long)ft.dwHighDateTime;
-    unsigned long low  = (unsigned long)ft.dwLowDateTime;
-
-    unsigned long long totalT;
-    memcpy(&totalT, &low, 4);
-    memcpy(((char*)&totalT) + 4, &high, 4);
-
-    return totalT;
-}
+//unsigned long long Global::serverStartTime; //when the server started up
+//unsigned long long Global::getRawUtcSystemTime()
+//{
+//    FILETIME ft;
+//    GetSystemTimeAsFileTime(&ft);
+//
+//    unsigned long high = (unsigned long)ft.dwHighDateTime;
+//    unsigned long low  = (unsigned long)ft.dwLowDateTime;
+//
+//    unsigned long long totalT;
+//    memcpy(&totalT, &low, 4);
+//    memcpy(((char*)&totalT) + 4, &high, 4);
+//
+//    return totalT;
+//}
 
 void Global::debugNew(const char* name)
 {

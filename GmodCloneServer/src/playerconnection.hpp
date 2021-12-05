@@ -26,6 +26,9 @@ private:
     std::mutex mutexNewMessage;
     std::vector<Message> messagesToSend;
 
+    // Returns false if the connection was closed or didn't read enough bytes.
+    static bool checkConnection(int numBytesExpected, int bytesRead, std::string message, PlayerConnection* pc);
+
     static void behaviorRead(PlayerConnection* pc);
 
     static void behaviorWrite(PlayerConnection* pc);

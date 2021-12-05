@@ -84,8 +84,28 @@ PlayerConnection::PlayerConnection(TcpClient* client)
     threadWrite = new std::thread(PlayerConnection::behaviorWrite, this); INCR_NEW("std::thread");
 }
 
+bool PlayerConnection::checkConnection(int numBytesExpected, int numBytesActual, std::string message, PlayerConnection* pc)
+{
+    if (!pc->client->isOpen() || numBytesActual != numBytesExpected)
+    {
+        printf("Error: Check connection failed because '%s'\n", message.c_str());
+        printf("       Expected bytes: %d. Bytes actual: %d\n", numBytesExpected, numBytesActual);
+
+        pc->mutexNewMessage.lock();
+        pc->running = false;
+        pc->condNewMessage.notify_all();
+        pc->mutexNewMessage.unlock();
+
+        return false;
+    }
+    
+    return true;
+}
+
 void PlayerConnection::behaviorRead(PlayerConnection* pc)
 {
+    #define CHECK_CONNECTION(NUM_BYTES, MESSAGE) if (!checkConnection(NUM_BYTES, numRead, MESSAGE, pc)) { return; }
+
     while (pc->running)
     {
         char command;
@@ -95,26 +115,21 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
             switch (command)
             {
                 case 0: //no op
+                    printf("Warning: recieved no op command from %s\n", pc->playerName.c_str());
                     break;
 
                 case 1: //time update
                 {
-                    unsigned long long clientRawUtcTime;
-                    numRead = pc->client->read((char*)&clientRawUtcTime, 8, TIMOUT);
-                    if (numRead != 8)
-                    {
-                        printf("Could not read clientSyncedTime\n");
-                        pc->mutexNewMessage.lock();
-                        pc->running = false;
-                        pc->condNewMessage.notify_all();
-                        pc->mutexNewMessage.unlock();
-                        return;
-                    }
+                    //unsigned long long clientRawUtcTime;
+                    double playerTime;
+                    numRead = pc->client->read(&playerTime, 8, TIMOUT); CHECK_CONNECTION(8, "Could not read clientSyncedTime");
 
-                    int ping = (int)((Global::getRawUtcSystemTime() - clientRawUtcTime)/10000);
+                    double cTime = glfwGetTime();
+                    int ping = (int)(((cTime - playerTime)*1000));
                     if (ping < 0)
                     {
-                        ping = 0;
+                        printf("ping was negative = %d\n (cTime = %f pTime = %f)\n", ping, cTime, playerTime);
+                        //ping = 0;
                     }
                     pc->pingMs = ping;
                     //printf("%s Ping = %dms\n", pc->playerName.c_str(), ping);
@@ -141,95 +156,88 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     memcpy(msg.buf, pc->sendMsgBuf, 5 + nameLen);
 
                     // Copy the rest of the data from the wire
-                    pc->client->read(&msg.buf[5 + nameLen], 144, 5);
+                    numRead = pc->client->read(&msg.buf[5 + nameLen], 144, TIMOUT); CHECK_CONNECTION(144, "Could not read player update");
 
                     memcpy(&msg.buf[5 + nameLen + 144], &pc->pingMs, 4);
-
-                    if (!pc->client->isOpen())
-                    {
-                        pc->mutexNewMessage.lock();
-                        pc->running = false;
-                        pc->condNewMessage.notify_all();
-                        pc->mutexNewMessage.unlock();
-                        break;
-                    }
 
                     // Send this player's status to all other players
                     broadcastMessage(msg, pc);
 
                     // Update the player position and health
-                    memcpy((char*)&pc->playerPos.x, &msg.buf[5 + nameLen + 18], 4);
-                    memcpy((char*)&pc->playerPos.y, &msg.buf[5 + nameLen + 22], 4);
-                    memcpy((char*)&pc->playerPos.z, &msg.buf[5 + nameLen + 26], 4);
+                    memcpy(&pc->playerPos.x,  &msg.buf[5 + nameLen +  18], 4);
+                    memcpy(&pc->playerPos.y,  &msg.buf[5 + nameLen +  22], 4);
+                    memcpy(&pc->playerPos.z,  &msg.buf[5 + nameLen +  26], 4);
                     memcpy(&pc->playerHealth, &msg.buf[5 + nameLen + 143], 1);
 
                     // Go through and see if the player has picked up any items
-
-                    const float COLLISION_RADIUS = 1.74f/4.0f;
-
-                    Global::gameEntitiesSharedMutex.lock_shared();
-                    for (Entity* e : Global::gameEntities)
+                    if (pc->playerHealth > 0)
                     {
-                        switch (e->getEntityType())
+                        const float COLLISION_RADIUS = 1.74f/4.0f;
+
+                        Global::gameEntitiesSharedMutex.lock_shared();
+                        for (Entity* e : Global::gameEntities)
                         {
-                            case ENTITY_HEALTH_CUBE:
+                            switch (e->getEntityType())
                             {
-                                Vector3f playerPos = pc->playerPos;
-                                playerPos.y += COLLISION_RADIUS;
-                                Vector3f diff1 = playerPos - e->position;
-                                playerPos.y += 2*COLLISION_RADIUS;
-                                Vector3f diff2 = playerPos - e->position;
-
-                                HealthCube* healthCube = (HealthCube*)e;
-
-                                if (!healthCube->isCollected &&
-                                    pc->playerHealth < 100 &&
-                                    (diff1.lengthSquared() < (COLLISION_RADIUS + 0.3f)*(COLLISION_RADIUS + 0.3f)) ||
-                                    (diff2.lengthSquared() < (COLLISION_RADIUS + 0.3f)*(COLLISION_RADIUS + 0.3f)))
+                                case ENTITY_HEALTH_CUBE:
                                 {
-                                    bool pickedUp = false;
+                                    Vector3f playerPos = pc->playerPos;
+                                    playerPos.y += COLLISION_RADIUS;
+                                    Vector3f diff1 = playerPos - e->position;
+                                    playerPos.y += 2*COLLISION_RADIUS;
+                                    Vector3f diff2 = playerPos - e->position;
 
-                                    Global::gameEntitiesMutex.lock();
-                                    if (!healthCube->isCollected)
+                                    HealthCube* healthCube = (HealthCube*)e;
+
+                                    if (!healthCube->isCollected &&
+                                        pc->playerHealth < 100 &&
+                                        (diff1.lengthSquared() < (COLLISION_RADIUS + 0.3f)*(COLLISION_RADIUS + 0.3f)) ||
+                                        (diff2.lengthSquared() < (COLLISION_RADIUS + 0.3f)*(COLLISION_RADIUS + 0.3f)))
                                     {
-                                        healthCube->isCollected = true;
-                                        pickedUp = true;
+                                        bool pickedUp = false;
+
+                                        Global::gameEntitiesMutex.lock();
+                                        if (!healthCube->isCollected)
+                                        {
+                                            healthCube->isCollected = true;
+                                            pickedUp = true;
+                                        }
+                                        Global::gameEntitiesMutex.unlock();
+
+                                        if (pickedUp)
+                                        {
+                                            Message msgOut;
+                                            msgOut.length = 5 + nameLen + 1;
+                                            msgOut.buf[0] = 6;
+
+                                            int healthNameLen = (int)e->name.length();
+                                            memcpy(&msgOut.buf[1], &healthNameLen, 4);
+                                            memcpy(&msgOut.buf[5], e->name.c_str(), healthNameLen);
+
+                                            // Send 25 health to the player that picked it up
+                                            msgOut.buf[5 + healthNameLen] = 25;
+                                            pc->addMessage(msgOut);
+
+                                            // Send 0 health to everyone else (so that it will disappear in their game)
+                                            // Need to make this a new message instead of reusing msgOut.. not really sure why.
+                                            Message msgOut2;
+                                            msgOut2.length = 5 + nameLen + 1;
+                                            msgOut2.buf[0] = 6;
+                                            memcpy(&msgOut2.buf[1], &healthNameLen, 4);
+                                            memcpy(&msgOut2.buf[5], e->name.c_str(), healthNameLen);
+                                            msgOut2.buf[5 + healthNameLen] = 0;
+                                            broadcastMessage(msgOut2, pc);
+                                        }
                                     }
-                                    Global::gameEntitiesMutex.unlock();
-
-                                    if (pickedUp)
-                                    {
-                                        Message msgOut;
-                                        msgOut.length = 5 + nameLen + 1;
-                                        msgOut.buf[0] = 6;
-
-                                        int healthNameLen = (int)e->name.length();
-                                        memcpy(&msgOut.buf[1], &healthNameLen, 4);
-                                        memcpy(&msgOut.buf[5], e->name.c_str(), healthNameLen);
-
-                                        // Send 25 health to the player that picked it up
-                                        msgOut.buf[5 + healthNameLen] = 25;
-                                        pc->addMessage(msgOut);
-
-                                        // Send 0 health to everyone else (so that it will disappear in their game)
-                                        // Need to make this a new message instead of reusing msgOut.. not really sure why.
-                                        Message msgOut2;
-                                        msgOut2.length = 5 + nameLen + 1;
-                                        msgOut2.buf[0] = 6;
-                                        memcpy(&msgOut2.buf[1], &healthNameLen, 4);
-                                        memcpy(&msgOut2.buf[5], e->name.c_str(), healthNameLen);
-                                        msgOut2.buf[5 + healthNameLen] = 0;
-                                        broadcastMessage(msgOut2, pc);
-                                    }
+                                    break;
                                 }
-                                break;
-                            }
 
-                            default:
-                                break;
+                                default:
+                                    break;
+                            }
                         }
+                        Global::gameEntitiesSharedMutex.unlock_shared();
                     }
-                    Global::gameEntitiesSharedMutex.unlock_shared();
 
                     break;
                 }
@@ -243,36 +251,27 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     char name[33] = {0};
                     int nameLen;
 
-                    pc->client->read((char*)&nameLen, 4, 5);
-                    pc->client->read(name, nameLen, 5);
-                    pc->client->read((char*)&x,  4, 5);
-                    pc->client->read((char*)&y,  4, 5);
-                    pc->client->read((char*)&z,  4, 5);
-                    pc->client->read((char*)&dx, 4, 5);
-                    pc->client->read((char*)&dy, 4, 5);
-                    pc->client->read((char*)&dz, 4, 5);
-                    pc->client->read((char*)&weapon, 1, 5);
-
-                    if (!pc->client->isOpen())
-                    {
-                        pc->mutexNewMessage.lock();
-                        pc->running = false;
-                        pc->condNewMessage.notify_all();
-                        pc->mutexNewMessage.unlock();
-                        break;
-                    }
+                    numRead = pc->client->read(&nameLen,   4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player name len");
+                    numRead = pc->client->read(name, nameLen, TIMOUT); CHECK_CONNECTION(nameLen, "Could not read player name");
+                    numRead = pc->client->read(&x,         4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player x");
+                    numRead = pc->client->read(&y,         4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player y");
+                    numRead = pc->client->read(&z,         4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player z");
+                    numRead = pc->client->read(&dx,        4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player dx");
+                    numRead = pc->client->read(&dy,        4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player dy");
+                    numRead = pc->client->read(&dz,        4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player dz");
+                    numRead = pc->client->read(&weapon,    1, TIMOUT); CHECK_CONNECTION(1,       "Could not read player weapon");
 
                     std::string playerThatGotHit = name;
 
                     Message msg;
                     msg.length = 26;
                     msg.buf[0] = 4;
-                    memcpy(&msg.buf[1 +  0], &x,  4);
-                    memcpy(&msg.buf[1 +  4], &y,  4);
-                    memcpy(&msg.buf[1 +  8], &z,  4);
-                    memcpy(&msg.buf[1 + 12], &dx, 4);
-                    memcpy(&msg.buf[1 + 16], &dy, 4);
-                    memcpy(&msg.buf[1 + 20], &dz, 4);
+                    memcpy(&msg.buf[1 +  0], &x,      4);
+                    memcpy(&msg.buf[1 +  4], &y,      4);
+                    memcpy(&msg.buf[1 +  8], &z,      4);
+                    memcpy(&msg.buf[1 + 12], &dx,     4);
+                    memcpy(&msg.buf[1 + 16], &dy,     4);
+                    memcpy(&msg.buf[1 + 20], &dz,     4);
                     memcpy(&msg.buf[1 + 24], &weapon, 1);
 
                     sendMessageToSpecificPlayer(msg, playerThatGotHit);
@@ -284,19 +283,10 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     int sfxId;
                     Vector3f pos;
 
-                    pc->client->read((char*)&sfxId, 4, 5);
-                    pc->client->read((char*)&pos.x, 4, 5);
-                    pc->client->read((char*)&pos.y, 4, 5);
-                    pc->client->read((char*)&pos.z, 4, 5);
-
-                    if (!pc->client->isOpen())
-                    {
-                        pc->mutexNewMessage.lock();
-                        pc->running = false;
-                        pc->condNewMessage.notify_all();
-                        pc->mutexNewMessage.unlock();
-                        break;
-                    }
+                    numRead = pc->client->read(&sfxId, 4, TIMOUT); CHECK_CONNECTION(4, "Could not read sfx id");
+                    numRead = pc->client->read(&pos.x, 4, TIMOUT); CHECK_CONNECTION(4, "Could not read sfx x");
+                    numRead = pc->client->read(&pos.y, 4, TIMOUT); CHECK_CONNECTION(4, "Could not read sfx y");
+                    numRead = pc->client->read(&pos.z, 4, TIMOUT); CHECK_CONNECTION(4, "Could not read sfx z");
 
                     Message msg;
                     msg.length = 1 + 4 + 12;
@@ -317,29 +307,48 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     char isReal;
                     char isBroken;
 
-                    pc->client->read((char*)&nameLen, 4, 5);
-                    pc->client->read(glassName, nameLen, 5);
-                    pc->client->read(&isReal,   1, 5);
-                    pc->client->read(&isBroken, 1, 5);
+                    numRead = pc->client->read(&nameLen,        4, TIMOUT); CHECK_CONNECTION(4,       "Could not read glass plane name len");
+                    numRead = pc->client->read(glassName, nameLen, TIMOUT); CHECK_CONNECTION(nameLen, "Could not read glass plane name");
+                    numRead = pc->client->read(&isReal,         1, TIMOUT); CHECK_CONNECTION(1,       "Could not read glass plane isReal");
+                    numRead = pc->client->read(&isBroken,       1, TIMOUT); CHECK_CONNECTION(1,       "Could not read glass plane isBroken");
 
                     Message msg;
                     msg.length = 5 + nameLen + 2;
                     msg.buf[0] = 8;
-                    memcpy(&msg.buf[1], &nameLen, 4);
-                    memcpy(&msg.buf[5], glassName, nameLen);
-                    memcpy(&msg.buf[5 + nameLen    ], &isReal, 1);
-                    memcpy(&msg.buf[5 + nameLen + 1], &isBroken, 1);
-
-                    if (!pc->client->isOpen())
-                    {
-                        pc->mutexNewMessage.lock();
-                        pc->running = false;
-                        pc->condNewMessage.notify_all();
-                        pc->mutexNewMessage.unlock();
-                        break;
-                    }
+                    memcpy(&msg.buf[1],               &nameLen,        4);
+                    memcpy(&msg.buf[5],               glassName, nameLen);
+                    memcpy(&msg.buf[5 + nameLen    ], &isReal,         1);
+                    memcpy(&msg.buf[5 + nameLen + 1], &isBroken,       1);
 
                     broadcastMessage(msg, pc);
+                    break;
+                }
+
+                case 14: // Signal that a step fall platform has been stepped on.
+                {
+                    int nameLen;
+                    char platName[33] = {0};
+
+                    numRead = pc->client->read(&nameLen,       4, TIMOUT); CHECK_CONNECTION(4,       "Could not read step fall platform name len");
+                    numRead = pc->client->read(platName, nameLen, TIMOUT); CHECK_CONNECTION(nameLen, "Could not read step fall platform name");
+
+                    Message msg;
+                    msg.length = 5 + nameLen;
+                    msg.buf[0] = 14;
+                    memcpy(&msg.buf[1], &nameLen, 4);
+                    memcpy(&msg.buf[5], platName, nameLen);
+
+                    broadcastMessage(msg, pc);
+                    break;
+                }
+
+                case 15: // The player is disconnecting
+                {
+                    printf("%s left gracefully.\n", pc->playerName.c_str());
+                    pc->mutexNewMessage.lock();
+                    pc->running = false;
+                    pc->condNewMessage.notify_all();
+                    pc->mutexNewMessage.unlock();
                     break;
                 }
 
@@ -357,7 +366,7 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
         }
         else
         {
-            printf("Could not read command from player\n");
+            printf("Timeout when reading command from player %s\n", pc->playerName.c_str());
             pc->mutexNewMessage.lock();
             pc->running = false;
             pc->condNewMessage.notify_all();
@@ -371,29 +380,14 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
 
 void PlayerConnection::behaviorWrite(PlayerConnection* pc)
 {
+    #define CHECK_CONNECTION(NUM_BYTES, MESSAGE) if (!checkConnection(NUM_BYTES, numWritten, MESSAGE, pc)) { pc->condNewMessage.notify_all(); return; }
+
     // Write the initial server start time command
     char cmd = 1;
-    int numWrite = pc->client->write(&cmd, 1, TIMOUT);
-    if (numWrite != 1)
-    {
-        printf("Could not write out time command player\n");
-        pc->mutexNewMessage.lock();
-        pc->running = false;
-        pc->condNewMessage.notify_all();
-        pc->mutexNewMessage.unlock();
-        return;
-    }
+    int numWritten = pc->client->write(&cmd, 1, TIMOUT); CHECK_CONNECTION(1, "Could not write out time command player");
 
-    numWrite = pc->client->write((char*)&Global::serverStartTime, 8, TIMOUT);
-    if (numWrite != 8)
-    {
-        printf("Could not write out time to player\n");
-        pc->mutexNewMessage.lock();
-        pc->running = false;
-        pc->condNewMessage.notify_all();
-        pc->mutexNewMessage.unlock();
-        return;
-    }
+    double serverTime = glfwGetTime();
+    numWritten = pc->client->write(&serverTime, 8, TIMOUT); CHECK_CONNECTION(8, "Could not write out time to player");
 
     while (pc->running)
     {
@@ -444,7 +438,7 @@ void PlayerConnection::flushMessages()
         int bytesWritten = client->write(msg.buf, msg.length, TIMOUT);
         if (bytesWritten != msg.length)
         {
-            printf("Didn't write enough bytes.\n");
+            printf("Didn't write enough bytes for command %d (Expcetd %d bytes, actual: %d)\n", msg.buf[0], msg.length, bytesWritten);
             running = false;
             condNewMessage.notify_all();
             break;

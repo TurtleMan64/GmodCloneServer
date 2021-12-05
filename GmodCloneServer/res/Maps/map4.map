@@ -1,5 +1,5 @@
 res/Models/Map4/ Cave      # Visual Stage Model
-res/Models/Map4/ Cave      # Collision Stage Model
+res/Models/Map4/ Collision # Collision Stage Model
 43 0 -11.7  50.4 0 11.8    # Player Spawning Zone Endpoints
 -100 -0.5 -100 100 100 100 # Player Safe Zone Endpoints
 1.0 1.0 1.0                # Sky Color

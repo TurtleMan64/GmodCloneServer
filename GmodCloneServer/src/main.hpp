@@ -25,6 +25,7 @@ class PlayerConnection;
 #define LVL_EQ   4
 #define LVL_MAP4 5
 #define LVL_TEST 6
+#define LVL_MAP5 7
 
 class Global
 {
@@ -45,8 +46,8 @@ public:
 
     static int levelId;
 
-    static unsigned long long serverStartTime; //when the server started up
-    static unsigned long long getRawUtcSystemTime();
+    //static unsigned long long serverStartTime; //when the server started up
+    //static unsigned long long getRawUtcSystemTime();
 
     static float timeUntilRoundStarts;
     static float timeUntilRoundEnds;

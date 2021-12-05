@@ -1,0 +1,11 @@
+res/Models/Map5/ Map5      # Visual Stage Model
+res/Models/Map5/ Collision # Collision Stage Model
+-7 35.2 -7  7 35.2 7       # Player Spawning Zone Endpoints
+-100 14 -100 100 200 100   # Player Safe Zone Endpoints
+1.0 1.0 1.0                # Sky Color
+-0.2 -1 -0.4               # Sun Direction
+-1 0 0                     # Camera Direction
+300                        # Round Time Duration (seconds)
+
+# Fence Platform
+12 F1 0 35 0

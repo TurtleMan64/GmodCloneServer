@@ -21,14 +21,14 @@ public:
 
     // Returns number of bytes written. If this is not equal to numBytesToSend, 
     // this means some error has happened and the connection has been closed.
-    int write(char* bytes, int numBytesToSend, int timeoutSec = -1);
+    int write(void* bytes, int numBytesToSend, int timeoutSec = -1);
 
     // Returns number of bytes read.
     // If timeout happens, returns 0.
     // If error happens, closes connection and returns -1.
     // If client has closed connection, closes connection and returns -2.
     // If bad parameters, returns -3.
-    int read(char* buffer, int numBytesToRead, int timeoutSec = -1);
+    int read(void* buffer, int numBytesToRead, int timeoutSec = -1);
 
     bool isOpen();
 

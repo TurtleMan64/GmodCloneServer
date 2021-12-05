@@ -75,6 +75,7 @@ void LevelLoader::loadLevel(std::string mapName)
     else if (fname == "eq.map")   Global::levelId = LVL_EQ;
     else if (fname == "map4.map") Global::levelId = LVL_MAP4;
     else if (fname == "test.map") Global::levelId = LVL_TEST;
+    else if (fname == "map5.map") Global::levelId = LVL_MAP5;
 
     //Run through the header content
 

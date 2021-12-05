@@ -149,7 +149,7 @@ bool TcpClient::isOpen()
     return (sd != INVALID_SOCKET);
 }
 
-int TcpClient::write(char* bytes, int numBytesToSend, int timeoutSec)
+int TcpClient::write(void* bytes, int numBytesToSend, int timeoutSec)
 {
     if (sd == INVALID_SOCKET ||
         numBytesToSend <= 0  ||
@@ -189,7 +189,7 @@ int TcpClient::write(char* bytes, int numBytesToSend, int timeoutSec)
         // Send response
         int flags = 0; //| MSG_DONTWAIT; //not waiting (MSG_DONTWAIT) causes the return to happen early and not send all the bytes much more often.
 
-        int numBytesSent = send(sd, &bytes[currentBytesSent], numBytesToSend - currentBytesSent, flags);
+        int numBytesSent = send(sd, &((char*)bytes)[currentBytesSent], numBytesToSend - currentBytesSent, flags);
 
         if (numBytesSent == -1)
         {
@@ -210,7 +210,7 @@ int TcpClient::write(char* bytes, int numBytesToSend, int timeoutSec)
     return currentBytesSent;
 }
 
-int TcpClient::read(char* buffer, int numBytesToRead, int timeoutSec)
+int TcpClient::read(void* buffer, int numBytesToRead, int timeoutSec)
 {
     if (sd == INVALID_SOCKET ||
         numBytesToRead <= 0  ||
@@ -245,7 +245,7 @@ int TcpClient::read(char* buffer, int numBytesToRead, int timeoutSec)
 
         int flags = 0;
 
-        int numBytesRead = recv(sd, &buffer[currentBytesRead], numBytesToRead - currentBytesRead, flags);
+        int numBytesRead = recv(sd, &((char*)buffer)[currentBytesRead], numBytesToRead - currentBytesRead, flags);
 
         if (numBytesRead == -1)
         {
