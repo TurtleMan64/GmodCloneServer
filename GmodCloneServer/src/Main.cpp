@@ -175,6 +175,8 @@ std::unordered_map<std::string, int> heapObjects;
 int countNew = 0;
 int countDelete = 0;
 
+int numPlayersAliveAtRoundStart = 0;
+
 void masterServerLogic()
 {
     double prevCheckDeadConnections = glfwGetTime();
@@ -301,6 +303,20 @@ void masterServerLogic()
             Global::gameEntitiesSharedMutex.unlock_shared();
         }
 
+        if (timeUntilRoundStartsBefore > 0.1f && Global::timeUntilRoundStarts <= 0.1f)
+        {
+            numPlayersAliveAtRoundStart = 0;
+            Global::playerConnectionsSharedMutex.lock_shared();
+            for (PlayerConnection* pc : Global::playerConnections)
+            {
+                if (pc->playerHealth > 0)
+                {
+                    numPlayersAliveAtRoundStart++;
+                }
+            }
+            Global::playerConnectionsSharedMutex.unlock_shared();
+        }
+
         float timeUntilRoundEndsBefore = Global::timeUntilRoundEnds;
         if (Global::timeUntilRoundStarts < 0.0f)
         {
@@ -309,36 +325,7 @@ void masterServerLogic()
 
         if (timeUntilRoundEndsBefore > -5.0f && Global::timeUntilRoundEnds <= -5.0f)
         {
-            std::string lvlToLoad;
-            float ran = Maths::random();
-            if (ran <= 0.25f)
-            {
-                lvlToLoad = "map1";
-            }
-            else if (ran <= 0.5f)
-            {
-                lvlToLoad = "map2";
-            }
-            else if (ran <= 0.75f)
-            {
-                lvlToLoad = "map4";
-            }
-            else if (ran <= 1.0f)
-            {
-                lvlToLoad = "map5";
-            }
-
-            int lvlNameLen = (int)lvlToLoad.size();
-            
-            Message msg;
-            msg.length = 5 + lvlNameLen;
-            msg.buf[0] = 9;
-            memcpy(&msg.buf[1], &lvlNameLen, 4);
-            memcpy(&msg.buf[5], lvlToLoad.c_str(), lvlNameLen);
-            
-            broadcastMessage(msg, nullptr);
-            
-            LevelLoader::loadLevel(lvlToLoad);
+            Global::pickNextLevel();
         }
 
 
@@ -361,11 +348,13 @@ void masterServerLogic()
             Sleep(1);
         }
 
-         //Every 1 second, check if all playes have entered the safe zone
+        // Every 1 second, check if enough players have died
+        // Every 1 second, check if all playes have entered the safe zone
         if (currTime - prevCheckSafeZone >= 1.0)
         {
-            if (Global::timeUntilRoundStarts < 0.0f && Global::timeUntilRoundEnds > 5.0f)
+            if (Global::timeUntilRoundStarts < 0.0f && Global::timeUntilRoundEnds > 2.0f)
             {
+                int totalDeadPlayers = 0;
                 int totalAlivePlayers = 0;
                 int totalAlivePlayersInSafeZone = 0;
 
@@ -378,6 +367,7 @@ void masterServerLogic()
                     }
                     else
                     {
+                        totalDeadPlayers++;
                         continue;
                     }
 
@@ -401,6 +391,16 @@ void masterServerLogic()
                 {
                     inSafeZoneRatio = ((float)totalAlivePlayersInSafeZone)/totalAlivePlayers;
                 }
+                else
+                {
+                    endingTheRound = true;
+                }
+
+                float diedThisRoundRatio = 0.0f;
+                if (numPlayersAliveAtRoundStart > 0)
+                {
+                    diedThisRoundRatio = 1.0f - (((float)totalAlivePlayers)/numPlayersAliveAtRoundStart);
+                }
 
                 if (Global::levelId == LVL_MAP1 && inSafeZoneRatio >= 0.5f)
                 {
@@ -410,11 +410,15 @@ void masterServerLogic()
                 {
                     endingTheRound = true;
                 }
+                else if (Global::levelId == LVL_MAP5 && diedThisRoundRatio > 0.49f)
+                {
+                    endingTheRound = true;
+                }
 
                 // Enough players have finished, let's kill the rest and end the round
                 if (endingTheRound)
                 {
-                    Global::timeUntilRoundEnds = 4.99f;
+                    Global::timeUntilRoundEnds = 1.99f;
 
                     // Sync round clock
                     Message timeMsg;
@@ -589,4 +593,63 @@ void Global::debugDel(const char* name)
     name;
     #endif
     debugMutex.unlock();
+}
+
+void Global::pickNextLevel()
+{
+    int totalPlayers = 0;
+    int totalDeadPlayers = 0;
+    int totalAlivePlayers = 0;
+
+    Global::playerConnectionsSharedMutex.lock_shared();
+    for (PlayerConnection* pc : Global::playerConnections)
+    {
+        if (pc->playerHealth > 0)
+        {
+            totalAlivePlayers++;
+        }
+        else
+        {
+            totalDeadPlayers++;
+        }
+    }
+    Global::playerConnectionsSharedMutex.unlock_shared();
+
+    totalPlayers = totalDeadPlayers + totalAlivePlayers;
+
+    std::string lvlToLoad;
+    float ran = Maths::random();
+    if (ran <= 0.25f)
+    {
+        lvlToLoad = "map1";
+    }
+    else if (ran <= 0.5f)
+    {
+        lvlToLoad = "map2";
+    }
+    else if (ran <= 0.75f)
+    {
+        lvlToLoad = "map4";
+    }
+    else if (ran <= 1.0f)
+    {
+        lvlToLoad = "map5";
+    }
+
+    int lvlNameLen = (int)lvlToLoad.size();
+
+    if (totalAlivePlayers <= 1) //New round
+    {
+        lvlToLoad = "test";
+    }
+            
+    Message msg;
+    msg.length = 5 + lvlNameLen;
+    msg.buf[0] = 9;
+    memcpy(&msg.buf[1], &lvlNameLen, 4);
+    memcpy(&msg.buf[5], lvlToLoad.c_str(), lvlNameLen);
+            
+    broadcastMessage(msg, nullptr);
+            
+    LevelLoader::loadLevel(lvlToLoad);
 }

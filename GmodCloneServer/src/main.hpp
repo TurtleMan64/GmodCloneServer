@@ -58,4 +58,6 @@ public:
     static void debugNew(const char* name);
 
     static void debugDel(const char* name);
+
+    static void pickNextLevel();
 };

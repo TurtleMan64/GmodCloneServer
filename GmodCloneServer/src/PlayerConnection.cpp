@@ -104,7 +104,7 @@ bool PlayerConnection::checkConnection(int numBytesExpected, int numBytesActual,
 
 void PlayerConnection::behaviorRead(PlayerConnection* pc)
 {
-    #define CHECK_CONNECTION(NUM_BYTES, MESSAGE) if (!checkConnection(NUM_BYTES, numRead, MESSAGE, pc)) { return; }
+    #define CHECK_CONNECTION_R(NUM_BYTES, MESSAGE) if (!checkConnection(NUM_BYTES, numRead, MESSAGE, pc)) { return; }
 
     while (pc->running)
     {
@@ -122,7 +122,7 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                 {
                     //unsigned long long clientRawUtcTime;
                     double playerTime;
-                    numRead = pc->client->read(&playerTime, 8, TIMOUT); CHECK_CONNECTION(8, "Could not read clientSyncedTime");
+                    numRead = pc->client->read(&playerTime, 8, TIMOUT); CHECK_CONNECTION_R(8, "Could not read clientSyncedTime");
 
                     double cTime = glfwGetTime();
                     int ping = (int)(((cTime - playerTime)*1000));
@@ -156,7 +156,7 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     memcpy(msg.buf, pc->sendMsgBuf, 5 + nameLen);
 
                     // Copy the rest of the data from the wire
-                    numRead = pc->client->read(&msg.buf[5 + nameLen], 144, TIMOUT); CHECK_CONNECTION(144, "Could not read player update");
+                    numRead = pc->client->read(&msg.buf[5 + nameLen], 144, TIMOUT); CHECK_CONNECTION_R(144, "Could not read player update");
 
                     memcpy(&msg.buf[5 + nameLen + 144], &pc->pingMs, 4);
 
@@ -206,11 +206,12 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
 
                                         if (pickedUp)
                                         {
+                                            int healthNameLen = (int)e->name.length();
+
                                             Message msgOut;
-                                            msgOut.length = 5 + nameLen + 1;
+                                            msgOut.length = 5 + healthNameLen + 1;
                                             msgOut.buf[0] = 6;
 
-                                            int healthNameLen = (int)e->name.length();
                                             memcpy(&msgOut.buf[1], &healthNameLen, 4);
                                             memcpy(&msgOut.buf[5], e->name.c_str(), healthNameLen);
 
@@ -221,7 +222,7 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                                             // Send 0 health to everyone else (so that it will disappear in their game)
                                             // Need to make this a new message instead of reusing msgOut.. not really sure why.
                                             Message msgOut2;
-                                            msgOut2.length = 5 + nameLen + 1;
+                                            msgOut2.length = 5 + healthNameLen + 1;
                                             msgOut2.buf[0] = 6;
                                             memcpy(&msgOut2.buf[1], &healthNameLen, 4);
                                             memcpy(&msgOut2.buf[5], e->name.c_str(), healthNameLen);
@@ -251,15 +252,15 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     char name[33] = {0};
                     int nameLen;
 
-                    numRead = pc->client->read(&nameLen,   4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player name len");
-                    numRead = pc->client->read(name, nameLen, TIMOUT); CHECK_CONNECTION(nameLen, "Could not read player name");
-                    numRead = pc->client->read(&x,         4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player x");
-                    numRead = pc->client->read(&y,         4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player y");
-                    numRead = pc->client->read(&z,         4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player z");
-                    numRead = pc->client->read(&dx,        4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player dx");
-                    numRead = pc->client->read(&dy,        4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player dy");
-                    numRead = pc->client->read(&dz,        4, TIMOUT); CHECK_CONNECTION(4,       "Could not read player dz");
-                    numRead = pc->client->read(&weapon,    1, TIMOUT); CHECK_CONNECTION(1,       "Could not read player weapon");
+                    numRead = pc->client->read(&nameLen,   4, TIMOUT); CHECK_CONNECTION_R(4,       "Could not read player name len");
+                    numRead = pc->client->read(name, nameLen, TIMOUT); CHECK_CONNECTION_R(nameLen, "Could not read player name");
+                    numRead = pc->client->read(&x,         4, TIMOUT); CHECK_CONNECTION_R(4,       "Could not read player x");
+                    numRead = pc->client->read(&y,         4, TIMOUT); CHECK_CONNECTION_R(4,       "Could not read player y");
+                    numRead = pc->client->read(&z,         4, TIMOUT); CHECK_CONNECTION_R(4,       "Could not read player z");
+                    numRead = pc->client->read(&dx,        4, TIMOUT); CHECK_CONNECTION_R(4,       "Could not read player dx");
+                    numRead = pc->client->read(&dy,        4, TIMOUT); CHECK_CONNECTION_R(4,       "Could not read player dy");
+                    numRead = pc->client->read(&dz,        4, TIMOUT); CHECK_CONNECTION_R(4,       "Could not read player dz");
+                    numRead = pc->client->read(&weapon,    1, TIMOUT); CHECK_CONNECTION_R(1,       "Could not read player weapon");
 
                     std::string playerThatGotHit = name;
 
@@ -283,10 +284,10 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     int sfxId;
                     Vector3f pos;
 
-                    numRead = pc->client->read(&sfxId, 4, TIMOUT); CHECK_CONNECTION(4, "Could not read sfx id");
-                    numRead = pc->client->read(&pos.x, 4, TIMOUT); CHECK_CONNECTION(4, "Could not read sfx x");
-                    numRead = pc->client->read(&pos.y, 4, TIMOUT); CHECK_CONNECTION(4, "Could not read sfx y");
-                    numRead = pc->client->read(&pos.z, 4, TIMOUT); CHECK_CONNECTION(4, "Could not read sfx z");
+                    numRead = pc->client->read(&sfxId, 4, TIMOUT); CHECK_CONNECTION_R(4, "Could not read sfx id");
+                    numRead = pc->client->read(&pos.x, 4, TIMOUT); CHECK_CONNECTION_R(4, "Could not read sfx x");
+                    numRead = pc->client->read(&pos.y, 4, TIMOUT); CHECK_CONNECTION_R(4, "Could not read sfx y");
+                    numRead = pc->client->read(&pos.z, 4, TIMOUT); CHECK_CONNECTION_R(4, "Could not read sfx z");
 
                     Message msg;
                     msg.length = 1 + 4 + 12;
@@ -307,10 +308,10 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     char isReal;
                     char isBroken;
 
-                    numRead = pc->client->read(&nameLen,        4, TIMOUT); CHECK_CONNECTION(4,       "Could not read glass plane name len");
-                    numRead = pc->client->read(glassName, nameLen, TIMOUT); CHECK_CONNECTION(nameLen, "Could not read glass plane name");
-                    numRead = pc->client->read(&isReal,         1, TIMOUT); CHECK_CONNECTION(1,       "Could not read glass plane isReal");
-                    numRead = pc->client->read(&isBroken,       1, TIMOUT); CHECK_CONNECTION(1,       "Could not read glass plane isBroken");
+                    numRead = pc->client->read(&nameLen,        4, TIMOUT); CHECK_CONNECTION_R(4,       "Could not read glass plane name len");
+                    numRead = pc->client->read(glassName, nameLen, TIMOUT); CHECK_CONNECTION_R(nameLen, "Could not read glass plane name");
+                    numRead = pc->client->read(&isReal,         1, TIMOUT); CHECK_CONNECTION_R(1,       "Could not read glass plane isReal");
+                    numRead = pc->client->read(&isBroken,       1, TIMOUT); CHECK_CONNECTION_R(1,       "Could not read glass plane isBroken");
 
                     Message msg;
                     msg.length = 5 + nameLen + 2;
@@ -329,8 +330,8 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     int nameLen;
                     char platName[33] = {0};
 
-                    numRead = pc->client->read(&nameLen,       4, TIMOUT); CHECK_CONNECTION(4,       "Could not read step fall platform name len");
-                    numRead = pc->client->read(platName, nameLen, TIMOUT); CHECK_CONNECTION(nameLen, "Could not read step fall platform name");
+                    numRead = pc->client->read(&nameLen,       4, TIMOUT); CHECK_CONNECTION_R(4,       "Could not read step fall platform name len");
+                    numRead = pc->client->read(platName, nameLen, TIMOUT); CHECK_CONNECTION_R(nameLen, "Could not read step fall platform name");
 
                     Message msg;
                     msg.length = 5 + nameLen;
@@ -380,14 +381,14 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
 
 void PlayerConnection::behaviorWrite(PlayerConnection* pc)
 {
-    #define CHECK_CONNECTION(NUM_BYTES, MESSAGE) if (!checkConnection(NUM_BYTES, numWritten, MESSAGE, pc)) { pc->condNewMessage.notify_all(); return; }
+    #define CHECK_CONNECTION_W(NUM_BYTES, MESSAGE) if (!checkConnection(NUM_BYTES, numWritten, MESSAGE, pc)) { pc->condNewMessage.notify_all(); return; }
 
     // Write the initial server start time command
     char cmd = 1;
-    int numWritten = pc->client->write(&cmd, 1, TIMOUT); CHECK_CONNECTION(1, "Could not write out time command player");
+    int numWritten = pc->client->write(&cmd, 1, TIMOUT); CHECK_CONNECTION_W(1, "Could not write out time command player");
 
     double serverTime = glfwGetTime();
-    numWritten = pc->client->write(&serverTime, 8, TIMOUT); CHECK_CONNECTION(8, "Could not write out time to player");
+    numWritten = pc->client->write(&serverTime, 8, TIMOUT); CHECK_CONNECTION_W(8, "Could not write out time to player");
 
     while (pc->running)
     {
