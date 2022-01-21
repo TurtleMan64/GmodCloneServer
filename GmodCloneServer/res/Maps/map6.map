@@ -1,0 +1,19 @@
+res/Models/Map6/ Map6      # Visual Stage Model
+res/Models/Map6/ Collision # Collision Stage Model
+-3 13 -3   3 13 3          # Player Spawning Zone Endpoints
+-100 -100 -100 100 100 100 # Player Safe Zone Endpoints
+0.745 0.905 0.96           # Sky Color
+0.2 -1 -0.4                # Sun Direction
+1 0 1                      # Camera Direction
+120                        # Round Time Duration (seconds)
+
+# Collision Blocks
+4 CB1  13 4.2 0     1 2.0 1.0 5.6 1 0
+
+# Ladders
+6 L1 -0.82416625 5.9273875   7.8449125    0.3479875  6.6137875 0.0355
+6 L2  3.7199125  5.9273875   7.8449125    0.3479875  6.6137875 0.0355
+6 L3  0.0        0.0       -20.554875     0.3479875 11.9610125 0.0355
+
+# Win Zone
+15 WZ1   0 12 0   5.0 5.0 5.0

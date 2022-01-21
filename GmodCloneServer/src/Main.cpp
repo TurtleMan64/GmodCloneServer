@@ -27,6 +27,7 @@
 #include "toolbox/levelloader.hpp"
 #include "toolbox/maths.hpp"
 #include "entities/rockplatform.hpp"
+#include "entities/fallblock.hpp"
 
 std::string Global::pathToEXE;
 
@@ -75,6 +76,8 @@ int main(int argc, char** argv)
         #endif
     }
 
+    Maths::initRandom((unsigned long)time(nullptr));
+
     signal(SIGINT, (_crt_signal_t)intHandler);
 
     glfwInit();
@@ -86,7 +89,7 @@ int main(int argc, char** argv)
     //}
     //CollisionChecker::constructChunkDatastructure();
 
-    LevelLoader::loadLevel("test");
+    LevelLoader::loadLevel("hub");
 
     glfwSetTime(0.0);
 
@@ -195,8 +198,9 @@ void masterServerLogic()
         float timeUntilRoundStartsBefore = Global::timeUntilRoundStarts;
         Global::timeUntilRoundStarts -= dt;
 
-        // Go through and send updates to all objects that need updating before the round starts
-        if (timeUntilRoundStartsBefore > 4.5f && Global::timeUntilRoundStarts <= 4.5f)
+        // Go through and send updates to all objects that need updating before the round starts.
+        // Don't do this int he hub thogh.
+        if (timeUntilRoundStartsBefore > 4.5f && Global::timeUntilRoundStarts <= 4.5f && Global::levelId != LVL_HUB)
         {
             // Sync round clock
             Message timeMsg;
@@ -244,6 +248,26 @@ void masterServerLogic()
                         memcpy(&msg.buf[1], &nameLen, 4);
                         memcpy(&msg.buf[5], rock->name.c_str(), nameLen);
                         memcpy(&msg.buf[5 + nameLen], &rock->timeUntilBreaks, 4);
+            
+                        broadcastMessage(msg, nullptr);
+                        break;
+                    }
+
+                    case ENTITY_FALL_BLOCK:
+                    {
+                        FallBlock* fblock = (FallBlock*)e;
+
+                        int nameLen = (int)fblock->name.size();
+            
+                        Message msg;
+                        msg.length = 5 + nameLen + 12;
+            
+                        msg.buf[0] = 16;
+                        memcpy(&msg.buf[1], &nameLen, 4);
+                        memcpy(&msg.buf[5], fblock->name.c_str(), nameLen);
+                        memcpy(&msg.buf[5 + nameLen + 0], &fblock->position.x, 4);
+                        memcpy(&msg.buf[5 + nameLen + 4], &fblock->position.z, 4);
+                        memcpy(&msg.buf[5 + nameLen + 8], &fblock->phaseTimer, 4);
             
                         broadcastMessage(msg, nullptr);
                         break;
@@ -325,7 +349,10 @@ void masterServerLogic()
 
         if (timeUntilRoundEndsBefore > -5.0f && Global::timeUntilRoundEnds <= -5.0f)
         {
-            Global::pickNextLevel();
+            if (Global::levelId != LVL_HUB)
+            {
+                Global::pickNextLevel();
+            }
         }
 
 
@@ -352,7 +379,7 @@ void masterServerLogic()
         // Every 1 second, check if all playes have entered the safe zone
         if (currTime - prevCheckSafeZone >= 1.0)
         {
-            if (Global::timeUntilRoundStarts < 0.0f && Global::timeUntilRoundEnds > 2.0f)
+            if (Global::timeUntilRoundStarts < 0.0f && Global::timeUntilRoundEnds > 2.0f && Global::levelId != LVL_HUB)
             {
                 int totalDeadPlayers = 0;
                 int totalAlivePlayers = 0;
@@ -414,10 +441,15 @@ void masterServerLogic()
                 {
                     endingTheRound = true;
                 }
+                else if (Global::levelId == LVL_MAP7 && totalAlivePlayers <= 1)
+                {
+                    endingTheRound = true;
+                }
 
                 // Enough players have finished, let's kill the rest and end the round
                 if (endingTheRound)
                 {
+                    printf("Enough players have died/finish, lets move on to next level\n");
                     Global::timeUntilRoundEnds = 1.99f;
 
                     // Sync round clock
@@ -490,7 +522,11 @@ void consoleInputLogic()
 
         std::string lvlName = "";
 
-        if (str == "load-map map1")
+        if (str == "load-map hub")
+        {
+            lvlName = "hub";
+        }
+        else if (str == "load-map map1")
         {
             lvlName = "map1";
         }
@@ -517,6 +553,14 @@ void consoleInputLogic()
         else if (str == "load-map map5")
         {
             lvlName = "map5";
+        }
+        else if (str == "load-map map6")
+        {
+            lvlName = "map6";
+        }
+        else if (str == "load-map map7")
+        {
+            lvlName = "map7";
         }
 
         if (lvlName != "")
@@ -617,32 +661,59 @@ void Global::pickNextLevel()
 
     totalPlayers = totalDeadPlayers + totalAlivePlayers;
 
+    // Don't pick the same level as the current one.
+    int lvlIdNext = Global::levelId;
+    while (lvlIdNext == Global::levelId)
+    {
+        float ran = Maths::random();
+
+        float div = 1.0f/6;
+
+        if (ran <= div*1)
+        {
+            lvlIdNext = LVL_MAP1;
+        }
+        else if (ran <= div*2)
+        {
+            lvlIdNext = LVL_MAP2;
+        }
+        else if (ran <= div*3)
+        {
+            lvlIdNext = LVL_MAP4;
+        }
+        else if (ran <= div*4)
+        {
+            lvlIdNext = LVL_MAP5;
+        }
+        else if (ran <= div*5)
+        {
+            lvlIdNext = LVL_MAP6;
+        }
+        else if (ran <= 1.0f)
+        {
+            lvlIdNext = LVL_MAP7;
+        }
+    }
+
     std::string lvlToLoad;
-    float ran = Maths::random();
-    if (ran <= 0.25f)
+    switch (lvlIdNext)
     {
-        lvlToLoad = "map1";
-    }
-    else if (ran <= 0.5f)
-    {
-        lvlToLoad = "map2";
-    }
-    else if (ran <= 0.75f)
-    {
-        lvlToLoad = "map4";
-    }
-    else if (ran <= 1.0f)
-    {
-        lvlToLoad = "map5";
+        case LVL_MAP1: lvlToLoad = "map1"; break;
+        case LVL_MAP2: lvlToLoad = "map2"; break;
+        case LVL_MAP4: lvlToLoad = "map4"; break;
+        case LVL_MAP5: lvlToLoad = "map5"; break;
+        case LVL_MAP6: lvlToLoad = "map6"; break;
+        case LVL_MAP7: lvlToLoad = "map7"; break;
+        default: break;
     }
 
     int lvlNameLen = (int)lvlToLoad.size();
 
     if (totalAlivePlayers <= 1) //New round
     {
-        lvlToLoad = "test";
+        lvlToLoad = "hub";
     }
-            
+    
     Message msg;
     msg.length = 5 + lvlNameLen;
     msg.buf[0] = 9;

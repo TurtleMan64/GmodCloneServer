@@ -1,0 +1,9 @@
+res/Models/Map7/ Map7      # Visual Stage Model
+res/Models/Map7/ Collision # Collision Stage Model
+-14 0 -14   14 0 14        # Player Spawning Zone Endpoints
+-100 -6 -100 100 100 100   # Player Safe Zone Endpoints
+0.745 0.905 0.96           # Sky Color
+0.2 -1 -0.4                # Sun Direction
+1 0 1                      # Camera Direction
+90                         # Round Time Duration (seconds)
+

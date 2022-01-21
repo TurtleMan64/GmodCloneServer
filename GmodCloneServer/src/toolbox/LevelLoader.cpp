@@ -24,9 +24,13 @@
 #include "../entities/rockplatform.hpp"
 #include "../message.hpp"
 #include "../playerconnection.hpp"
+#include "../entities/bat.hpp"
+#include "../entities/fallblock.hpp"
 
 void LevelLoader::loadLevel(std::string mapName)
 {
+    printf("Loading a new level %s\n", mapName.c_str());
+
     //convert name to lowercase name
     char nameLower[32] = {0};
     if ((int)mapName.size() < 32)
@@ -63,8 +67,6 @@ void LevelLoader::loadLevel(std::string mapName)
     Global::gameEntities.clear();
     Global::gameEntitiesSharedMutex.unlock();
 
-    Global::timeUntilRoundStarts = 7.0f;
-
     std::chrono::high_resolution_clock::time_point timeStart = std::chrono::high_resolution_clock::now();
     bool waitForSomeTime = true;
 
@@ -76,6 +78,17 @@ void LevelLoader::loadLevel(std::string mapName)
     else if (fname == "map4.map") Global::levelId = LVL_MAP4;
     else if (fname == "test.map") Global::levelId = LVL_TEST;
     else if (fname == "map5.map") Global::levelId = LVL_MAP5;
+    else if (fname == "map6.map") Global::levelId = LVL_MAP6;
+    else if (fname == "map7.map") Global::levelId = LVL_MAP7;
+
+    if (Global::levelId == LVL_HUB)
+    {
+        Global::timeUntilRoundStarts = -1.0f;
+    }
+    else
+    {
+        Global::timeUntilRoundStarts = 12.0f;
+    }
 
     //Run through the header content
 
@@ -186,18 +199,22 @@ void LevelLoader::loadLevel(std::string mapName)
         }
     }
 
-    if (waitForSomeTime)
+    // Spawn fall platforms
+    if (Global::levelId == LVL_MAP7)
     {
-        int waitTargetMillis = 1; //how long loading screen should show at least (in milliseconds)
-
-        std::chrono::high_resolution_clock::time_point timeEnd = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> time_span = timeEnd - timeStart;
-        double durationMillis = time_span.count();
-
-        int waitForMs = waitTargetMillis - (int)durationMillis;
-        if (waitForMs > 0)
+        int i = 0;
+        for (int c = 0; c < 160; c++)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(waitForMs));
+            int x = (int)(5*Maths::random()) - 2;
+            int z = (int)(5*Maths::random()) - 2;
+
+            i++;
+        
+            std::string id = std::to_string(i);
+            id = "FB" + id;
+        
+            FallBlock* fblock = new FallBlock(id, Vector3f(x*8.0f, 0, z*8.0f), 8.0f + i); INCR_NEW("Entity");
+            Global::gameEntities.insert(fblock);
         }
     }
 
@@ -295,6 +312,13 @@ void LevelLoader::processLine(std::vector<std::string>& dat)
         {
             RockPlatform* rock = new RockPlatform(dat[1], Vector3f(toF(dat[2]), toF(dat[3]), toF(dat[4]))); INCR_NEW("Entity");
             Global::gameEntities.insert(rock);
+            break;
+        }
+
+        case ENTITY_BAT:
+        {
+            Bat* bat = new Bat(dat[1], Vector3f(toF(dat[2]), toF(dat[3]), toF(dat[4]))); INCR_NEW("Entity");
+            Global::gameEntities.insert(bat);
             break;
         }
 

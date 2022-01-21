@@ -19,7 +19,7 @@ private:
     std::thread* threadWrite = nullptr;
     //std::vector<Message> messagesToSend;
     //std::mutex mutexMessages;
-    char sendMsgBuf[200] = {0};
+    char sendMsgBuf[250] = {0};
 
     //signals when a new message has showed up
     std::condition_variable condNewMessage;
@@ -38,7 +38,9 @@ public:
     std::string playerName = "error";
     Vector3f playerPos;
     char playerHealth = 100;
+    char playerWeapon = 0;
     int pingMs = 0;
+    float playerInZoneTime = 0.0f;
     Message disconnectMessage;
 
     PlayerConnection(TcpClient* client);

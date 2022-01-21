@@ -96,6 +96,12 @@
     <ClCompile Include="src\entities\RockPlatform.cpp">
       <Filter>Source Files\entities</Filter>
     </ClCompile>
+    <ClCompile Include="src\entities\Bat.cpp">
+      <Filter>Source Files\entities</Filter>
+    </ClCompile>
+    <ClCompile Include="src\entities\FallBlock.cpp">
+      <Filter>Source Files\entities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\tcpclient.hpp">
@@ -162,6 +168,12 @@
       <Filter>Source Files\toolbox</Filter>
     </ClInclude>
     <ClInclude Include="src\entities\rockplatform.hpp">
+      <Filter>Source Files\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="src\entities\bat.hpp">
+      <Filter>Source Files\entities</Filter>
+    </ClInclude>
+    <ClInclude Include="src\entities\fallblock.hpp">
       <Filter>Source Files\entities</Filter>
     </ClInclude>
   </ItemGroup>

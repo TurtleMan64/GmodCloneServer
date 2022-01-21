@@ -1,0 +1,22 @@
+res/Models/Hub/ Hub         # Visual Stage Model
+res/Models/Hub/ Collision   # Collision Stage Model
+-16 0.1 -8    0 0.1 8       # Player Spawning Zone Endpoints
+-100 -100 -100 100 100 100  # Player Safe Zone Endpoints
+0.745 0.905 0.96            # Sky Color
+-0.2 -1 -0.4                # Sun Direction
+-1 0 0                      # Camera Direction
+60000000                    # Round Time Duration (seconds)
+
+# Lights
+11 CH1       15.6788 15.5 -15.6788    1 -135    0.005 0.01    1
+11 CH2       15.6788 15.5  15.6788    1  135    0.005 0.01    2
+11 CH3      -40.1729 15.5   0         1    0    0.005 0.01    3
+
+# CollisionBlock
+4 CB1   19  8 0    1 2  1  4 1 0
+
+# Boom Box
+9 BB1 27.535393 12.500000 -2.345991 -135
+
+# Ladders
+6 L1 0 0.0 -22.09    0.572 12.4978 0.0815

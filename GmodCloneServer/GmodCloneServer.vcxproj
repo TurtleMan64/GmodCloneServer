@@ -134,7 +134,9 @@
     <ClCompile Include="src\collision\CollisionModel.cpp" />
     <ClCompile Include="src\collision\Triangle3D.cpp" />
     <ClCompile Include="src\entities\Ball.cpp" />
+    <ClCompile Include="src\entities\Bat.cpp" />
     <ClCompile Include="src\entities\Entity.cpp" />
+    <ClCompile Include="src\entities\FallBlock.cpp" />
     <ClCompile Include="src\entities\Glass.cpp" />
     <ClCompile Include="src\entities\HealthCube.cpp" />
     <ClCompile Include="src\entities\RockPlatform.cpp" />
@@ -158,7 +160,9 @@
     <ClInclude Include="src\collision\collisionmodel.hpp" />
     <ClInclude Include="src\collision\triangle3d.hpp" />
     <ClInclude Include="src\entities\ball.hpp" />
+    <ClInclude Include="src\entities\bat.hpp" />
     <ClInclude Include="src\entities\entity.hpp" />
+    <ClInclude Include="src\entities\fallblock.hpp" />
     <ClInclude Include="src\entities\glass.hpp" />
     <ClInclude Include="src\entities\healthcube.hpp" />
     <ClInclude Include="src\entities\rockplatform.hpp" />

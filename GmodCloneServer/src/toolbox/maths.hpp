@@ -19,8 +19,10 @@ private:
     static std::normal_distribution<float>* distributionNormal;
 
 public:
-    static const float PI;
-    static const float E;
+    static void initRandom(unsigned int seed);
+
+    static constexpr float PI = 3.14159265358979323846f;
+    static constexpr float E  = 2.71828182845904523536f;
 
     static float toRadians(float deg);
 

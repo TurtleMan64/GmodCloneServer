@@ -15,6 +15,7 @@
 #include "entities/healthcube.hpp"
 #include "entities/ball.hpp"
 #include "toolbox/maths.hpp"
+#include "entities/bat.hpp"
 
 #define TIMOUT 10
 
@@ -124,11 +125,11 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     double playerTime;
                     numRead = pc->client->read(&playerTime, 8, TIMOUT); CHECK_CONNECTION_R(8, "Could not read clientSyncedTime");
 
-                    double cTime = glfwGetTime();
-                    int ping = (int)(((cTime - playerTime)*1000));
+                    double ourTime = glfwGetTime();
+                    int ping = (int)(((ourTime - playerTime)*1000));
                     if (ping < 0)
                     {
-                        printf("ping was negative = %d\n (cTime = %f pTime = %f)\n", ping, cTime, playerTime);
+                        printf("ping was negative = %d\n (ourTime = %f playerTime = %f)\n", ping, ourTime, playerTime);
                         //ping = 0;
                     }
                     pc->pingMs = ping;
@@ -150,24 +151,27 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     int nameLen = (int)pc->playerName.size();
 
                     Message msg;
-                    msg.length = 5 + nameLen + 144 + 4;
+                    msg.length = 5 + nameLen + 198 + 4;
 
                     // Copy the name over
                     memcpy(msg.buf, pc->sendMsgBuf, 5 + nameLen);
 
                     // Copy the rest of the data from the wire
-                    numRead = pc->client->read(&msg.buf[5 + nameLen], 144, TIMOUT); CHECK_CONNECTION_R(144, "Could not read player update");
+                    numRead = pc->client->read(&msg.buf[5 + nameLen], 198, TIMOUT); CHECK_CONNECTION_R(198, "Could not read player update");
 
-                    memcpy(&msg.buf[5 + nameLen + 144], &pc->pingMs, 4);
+                    // Insert the players ping at the end of the message
+                    memcpy(&msg.buf[5 + nameLen + 198], &pc->pingMs, 4);
 
                     // Send this player's status to all other players
                     broadcastMessage(msg, pc);
 
-                    // Update the player position and health
-                    memcpy(&pc->playerPos.x,  &msg.buf[5 + nameLen +  18], 4);
-                    memcpy(&pc->playerPos.y,  &msg.buf[5 + nameLen +  22], 4);
-                    memcpy(&pc->playerPos.z,  &msg.buf[5 + nameLen +  26], 4);
-                    memcpy(&pc->playerHealth, &msg.buf[5 + nameLen + 143], 1);
+                    // Update various player vars that we need
+                    memcpy(&pc->playerPos.x,      &msg.buf[5 + nameLen +  18], 4);
+                    memcpy(&pc->playerPos.y,      &msg.buf[5 + nameLen +  22], 4);
+                    memcpy(&pc->playerPos.z,      &msg.buf[5 + nameLen +  26], 4);
+                    memcpy(&pc->playerWeapon,     &msg.buf[5 + nameLen + 142], 1);
+                    memcpy(&pc->playerHealth,     &msg.buf[5 + nameLen + 143], 1);
+                    memcpy(&pc->playerInZoneTime, &msg.buf[5 + nameLen + 144], 4);
 
                     // Go through and see if the player has picked up any items
                     if (pc->playerHealth > 0)
@@ -227,6 +231,60 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                                             memcpy(&msgOut2.buf[1], &healthNameLen, 4);
                                             memcpy(&msgOut2.buf[5], e->name.c_str(), healthNameLen);
                                             msgOut2.buf[5 + healthNameLen] = 0;
+                                            broadcastMessage(msgOut2, pc);
+                                        }
+                                    }
+                                    break;
+                                }
+
+                                case ENTITY_BAT:
+                                {
+                                    Vector3f playerPos = pc->playerPos;
+                                    playerPos.y += COLLISION_RADIUS;
+                                    Vector3f diff1 = playerPos - e->position;
+                                    playerPos.y += 2*COLLISION_RADIUS;
+                                    Vector3f diff2 = playerPos - e->position;
+
+                                    Bat* bat = (Bat*)e;
+
+                                    if (!bat->isCollected &&
+                                        pc->playerWeapon == 0 &&
+                                        (diff1.lengthSquared() < (COLLISION_RADIUS + 0.3f)*(COLLISION_RADIUS + 0.3f)) ||
+                                        (diff2.lengthSquared() < (COLLISION_RADIUS + 0.3f)*(COLLISION_RADIUS + 0.3f)))
+                                    {
+                                        bool pickedUp = false;
+
+                                        Global::gameEntitiesMutex.lock();
+                                        if (!bat->isCollected)
+                                        {
+                                            bat->isCollected = true;
+                                            pickedUp = true;
+                                        }
+                                        Global::gameEntitiesMutex.unlock();
+
+                                        if (pickedUp)
+                                        {
+                                            int batNameLen = (int)e->name.length();
+
+                                            Message msgOut;
+                                            msgOut.length = 5 + batNameLen + 1;
+                                            msgOut.buf[0] = 15;
+
+                                            memcpy(&msgOut.buf[1], &batNameLen, 4);
+                                            memcpy(&msgOut.buf[5], e->name.c_str(), batNameLen);
+
+                                            // Send 1 to the player that picked it up
+                                            msgOut.buf[5 + batNameLen] = 1;
+                                            pc->addMessage(msgOut);
+
+                                            // Send 0 to everyone else (so that it will disappear in their game)
+                                            // Need to make this a new message instead of reusing msgOut.. not really sure why.
+                                            Message msgOut2;
+                                            msgOut2.length = 5 + batNameLen + 1;
+                                            msgOut2.buf[0] = 15;
+                                            memcpy(&msgOut2.buf[1], &batNameLen, 4);
+                                            memcpy(&msgOut2.buf[5], e->name.c_str(), batNameLen);
+                                            msgOut2.buf[5 + batNameLen] = 0;
                                             broadcastMessage(msgOut2, pc);
                                         }
                                     }
@@ -384,11 +442,13 @@ void PlayerConnection::behaviorWrite(PlayerConnection* pc)
     #define CHECK_CONNECTION_W(NUM_BYTES, MESSAGE) if (!checkConnection(NUM_BYTES, numWritten, MESSAGE, pc)) { pc->condNewMessage.notify_all(); return; }
 
     // Write the initial server start time command
-    char cmd = 1;
-    int numWritten = pc->client->write(&cmd, 1, TIMOUT); CHECK_CONNECTION_W(1, "Could not write out time command player");
+    char timeCmd = 1;
+    int numWritten = pc->client->write(&timeCmd, 1, TIMOUT); CHECK_CONNECTION_W(1, "Could not write out time command player");
 
     double serverTime = glfwGetTime();
     numWritten = pc->client->write(&serverTime, 8, TIMOUT); CHECK_CONNECTION_W(8, "Could not write out time to player");
+
+    double lastTimeSent = glfwGetTime();
 
     while (pc->running)
     {
@@ -411,6 +471,16 @@ void PlayerConnection::behaviorWrite(PlayerConnection* pc)
         if (pc->messagesToSend.size() > 0)
         {
             pc->flushMessages();
+        }
+
+        lock.unlock();
+
+        if (glfwGetTime() - lastTimeSent >= 5.0)
+        {
+            numWritten = pc->client->write(&timeCmd, 1, TIMOUT); CHECK_CONNECTION_W(1, "Could not write out time command player");
+
+            lastTimeSent = glfwGetTime();
+            numWritten = pc->client->write(&lastTimeSent, 8, TIMOUT); CHECK_CONNECTION_W(8, "Could not write out time to player");
         }
     }
 
