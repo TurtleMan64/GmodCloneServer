@@ -151,16 +151,16 @@ void PlayerConnection::behaviorRead(PlayerConnection* pc)
                     int nameLen = (int)pc->playerName.size();
 
                     Message msg;
-                    msg.length = 5 + nameLen + 198 + 4;
+                    msg.length = 5 + nameLen + 219 + 4;
 
                     // Copy the name over
                     memcpy(msg.buf, pc->sendMsgBuf, 5 + nameLen);
 
                     // Copy the rest of the data from the wire
-                    numRead = pc->client->read(&msg.buf[5 + nameLen], 198, TIMOUT); CHECK_CONNECTION_R(198, "Could not read player update");
+                    numRead = pc->client->read(&msg.buf[5 + nameLen], 219, TIMOUT); CHECK_CONNECTION_R(219, "Could not read player update");
 
                     // Insert the players ping at the end of the message
-                    memcpy(&msg.buf[5 + nameLen + 198], &pc->pingMs, 4);
+                    memcpy(&msg.buf[5 + nameLen + 219], &pc->pingMs, 4);
 
                     // Send this player's status to all other players
                     broadcastMessage(msg, pc);
