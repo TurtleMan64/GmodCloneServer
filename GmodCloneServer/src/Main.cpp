@@ -199,7 +199,7 @@ void masterServerLogic()
         Global::timeUntilRoundStarts -= dt;
 
         // Go through and send updates to all objects that need updating before the round starts.
-        // Don't do this int he hub thogh.
+        // Don't do this in the hub thogh.
         if (timeUntilRoundStartsBefore > 4.5f && Global::timeUntilRoundStarts <= 4.5f && Global::levelId != LVL_HUB)
         {
             // Sync round clock
@@ -347,6 +347,7 @@ void masterServerLogic()
             Global::timeUntilRoundEnds -= dt;
         }
 
+        //printf("Global::timeUntilRoundEnds = %f\n", Global::timeUntilRoundEnds);
         if (timeUntilRoundEndsBefore > -5.0f && Global::timeUntilRoundEnds <= -5.0f)
         {
             if (Global::levelId != LVL_HUB)
@@ -641,6 +642,7 @@ void Global::debugDel(const char* name)
 
 void Global::pickNextLevel()
 {
+    printf("Picking the next level...\n");
     int totalPlayers = 0;
     int totalDeadPlayers = 0;
     int totalAlivePlayers = 0;
